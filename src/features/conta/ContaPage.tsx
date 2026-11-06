@@ -4,14 +4,8 @@ import { Link } from "react-router-dom";
 import { useAuth, useCurrentUser } from "@/features/auth/AuthProvider";
 import { useWorkspace } from "@/features/workspace/WorkspaceProvider";
 import { ROLE_LABEL } from "@/lib/roles";
+import { Avatar } from "@/ui/avatar";
 import { Button } from "@/ui/button";
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? "";
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : "";
-  return (first + last).toUpperCase() || "?";
-}
 
 export function ContaPage() {
   const user = useCurrentUser();
@@ -23,9 +17,7 @@ export function ContaPage() {
   return (
     <div className="space-y-4 p-4">
       <section className="flex items-center gap-3 rounded-lg border bg-card p-4">
-        <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-secondary font-semibold text-secondary-foreground">
-          {initials(name)}
-        </span>
+        <Avatar name={name} className="size-12" />
         <div className="min-w-0">
           <p className="truncate font-medium">{name}</p>
           {user.email && <p className="truncate text-sm text-muted-foreground">{user.email}</p>}

@@ -4,6 +4,9 @@
  *
  * O token vai no subprotocolo, nunca na URL: URL aparece em logs de proxy. Evento com `truncated: true` traz só ids;
  * quem escuta busca o registro na API. Ao reconectar, avisa por `onResync`, porque o que chegou no intervalo se perdeu.
+ *
+ * Mensagens só chegam da conversa em foco (`focus`), e o servidor confere a permissão ao focar e depois. O foco é refeito
+ * sozinho a cada reconexão; ao perder o acesso, avisa por `onUnfocused`.
  */
 export interface RealtimeChange<T = Record<string, unknown>> {
   table: string;
@@ -52,6 +55,10 @@ export class RealtimeClient {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private hiddenTimer: ReturnType<typeof setTimeout> | null = null;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
+  private subscribed = false;
+  private focusedId: string | null = null;
+  private readonly focusedListeners = new Set<(conversationId: string) => void>();
+  private readonly unfocusedListeners = new Set<(conversationId: string) => void>();
   private readonly listeners = new Map<string, Set<Listener>>();
   private readonly stateListeners = new Set<(state: RealtimeState) => void>();
   private readonly resyncListeners = new Set<() => void>();
@@ -65,6 +72,8 @@ export class RealtimeClient {
   /** Assina uma empresa. Trocar de empresa refaz a conexão, para não misturar eventos. */
   connect(companyId: string): void {
     if (this.companyId === companyId && this.ws) return;
+    // Só ao trocar de empresa: aberto por notificação, o chat pede o foco antes de a conexão existir.
+    if (this.companyId && this.companyId !== companyId) this.focusedId = null;
     this.close();
     this.companyId = companyId;
     this.everOnline = false;
@@ -75,6 +84,7 @@ export class RealtimeClient {
     this.close();
     this.companyId = null;
     this.everOnline = false;
+    this.focusedId = null;
     this.setState("idle");
   }
 
@@ -109,6 +119,29 @@ export class RealtimeClient {
   onRevoked(listener: (companyId: string) => void): () => void {
     this.revokedListeners.add(listener);
     return () => this.revokedListeners.delete(listener);
+  }
+
+  /** A conversa aberta na tela, ou `null` ao sair dela. */
+  focus(conversationId: string | null): void {
+    if (this.focusedId === conversationId) return;
+    this.focusedId = conversationId;
+    if (this.subscribed) this.send({ type: "focus", conversation_id: conversationId });
+  }
+
+  onFocused(listener: (conversationId: string) => void): () => void {
+    this.focusedListeners.add(listener);
+    return () => this.focusedListeners.delete(listener);
+  }
+
+  onUnfocused(listener: (conversationId: string) => void): () => void {
+    this.unfocusedListeners.add(listener);
+    return () => this.unfocusedListeners.delete(listener);
+  }
+
+  private loseFocus(conversationId: string): void {
+    if (this.focusedId !== conversationId) return;
+    this.focusedId = null;
+    for (const listener of this.unfocusedListeners) listener(conversationId);
   }
 
   private setState(state: RealtimeState): void {
@@ -163,6 +196,7 @@ export class RealtimeClient {
     ws.onclose = (event) => {
       if (this.ws !== ws) return;
       this.ws = null;
+      this.subscribed = false;
       this.stopPing();
       if (event.code === CLOSE_UNAUTHORIZED) {
         this.setState("unauthorized");
@@ -178,6 +212,7 @@ export class RealtimeClient {
       type?: string;
       company_id?: unknown;
       detail?: unknown;
+      conversation_id?: unknown;
     } & Partial<RealtimeChange>;
     try {
       message = JSON.parse(String(raw));
@@ -187,7 +222,9 @@ export class RealtimeClient {
     switch (message.type) {
       case "subscribed":
         this.everOnline = true;
+        this.subscribed = true;
         this.setState("online");
+        if (this.focusedId) this.send({ type: "focus", conversation_id: this.focusedId });
         if (this.pendingResync) {
           // Só depois de assinar: um evento entre o recarregamento e a assinatura não se perde.
           this.pendingResync = false;
@@ -204,8 +241,17 @@ export class RealtimeClient {
       case "revoked":
         for (const listener of this.revokedListeners) listener(String(message.company_id));
         return;
+      case "focused":
+        if (typeof message.conversation_id === "string") {
+          for (const listener of this.focusedListeners) listener(message.conversation_id);
+        }
+        return;
+      case "unfocused":
+        if (typeof message.conversation_id === "string") this.loseFocus(message.conversation_id);
+        return;
       case "error":
         console.warn("[realtime]", message.detail);
+        if (typeof message.conversation_id === "string") this.loseFocus(message.conversation_id);
         return;
       default:
     }
@@ -236,6 +282,7 @@ export class RealtimeClient {
     if (this.hiddenTimer) clearTimeout(this.hiddenTimer);
     this.hiddenTimer = null;
     this.stopPing();
+    this.subscribed = false;
     const ws = this.ws;
     this.ws = null;
     ws?.close();

@@ -12,6 +12,8 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}`,
     channel: process.env.E2E_CHANNEL === "chromium" ? undefined : "chrome",
     permissions: ["microphone"],
+    // A abertura cobre a tela por ~2 s; só o teste dela a liga.
+    contextOptions: { reducedMotion: "reduce" },
     launchOptions: {
       args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"],
     },

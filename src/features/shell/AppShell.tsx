@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Navigate, Outlet, useMatch, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useWorkspace } from "@/features/workspace/WorkspaceProvider";
 import { isManagerRole } from "@/lib/roles";
@@ -60,10 +60,22 @@ export function AppShell() {
   const state = useRealtimeState();
   useRealtimeBridge(workspace.company_id);
   useNotificationNavigation();
+  const inChat = useMatch("/conversas/:id");
   const status = STATUS[state];
 
+  // O chat ocupa a tela toda, como em um app de mensagens, e tem cabeçalho próprio.
+  if (inChat) {
+    return (
+      <div className="relative h-dvh overflow-hidden bg-background">
+        <Outlet />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-dvh flex-col bg-background">
+    // `relative` e `overflow-hidden`: texto oculto (`sr-only`) é posicionado de forma absoluta e, sem isso, escaparia da
+    // lista que rola e aumentaria a altura da página inteira.
+    <div className="relative flex h-dvh flex-col overflow-hidden bg-background">
       <header className="flex shrink-0 items-center justify-between gap-3 border-b bg-card px-4 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))]">
         <h1 className="truncate text-base font-semibold">{workspace.company_name ?? "AG3"}</h1>
         <span
@@ -75,7 +87,7 @@ export function AppShell() {
         </span>
       </header>
 
-      <main className="min-h-0 flex-1 overflow-y-auto">
+      <main className="relative min-h-0 flex-1 overflow-y-auto">
         <Outlet />
       </main>
 

@@ -3,8 +3,8 @@
 Versão 3, 06/11/2026. Caminhos de código são relativos aos repositórios `SistemaAG3.ai-Backend-Django` e
 `SistemaAG3.ai-Frontend`.
 
-**Estado:** Onda 0 pronta e login validado contra o Django local. Onda 1 com a suíte do backend verde. Onda 2 escrita:
-aguarda suíte e commit. Testes em aparelho real pendentes (seção 9).
+**Estado:** Ondas 0, 1 e 2 commitadas, com a suíte do backend verde. Onda 3 escrita: aguarda suíte do backend, teste contra
+o Django local e commit. Testes em aparelho real pendentes (seção 9).
 
 ## 1. Resumo
 
@@ -33,7 +33,7 @@ aguarda suíte e commit. Testes em aparelho real pendentes (seção 9).
 | Visões | Operador e gestor são igualmente necessários e aparecem juntos desde a primeira entrega |
 | Backend | Todo o consumo aponta para a produção atual em Django |
 | Domínio | `mobile.ag3system.com`, a ser criado pelo Daniel durante o projeto |
-| Identidade | Globo e marca AG3.AI da landing (`LP-AG3`), com fundo azul-marinho `#0d1426` |
+| Identidade | Globo, marca AG3.AI e abertura da landing (`LP-AG3`); fundo azul-marinho `#12224e`, a cor `--chip` do site, e ícones em fundo branco, como no site |
 | Hospedagem do webapp | Hostinger ou Railway, a definir pelo Daniel. O plano funciona nas duas (7.1) |
 
 ## 3. O que já dá para aproveitar
@@ -338,6 +338,9 @@ devolve a mensagem já criada, sem novo envio ao provedor. Não exige migration.
 
 - Só gestor/admin. Snapshot por empresa no Redis, válido por ~10 s, com uma única reconstrução por vez. Advisory lock de
   sessão não serve, por causa do PgBouncer.
+- **Feito na Onda 3 (adendo he):** além do previsto, `queue.pending` e, por operador, `in_attendance` e `on_hold`. `active`
+  conta só as pendentes, como o limite de conversas do backend. A tela também consulta a cada 60 s com o WebSocket ligado,
+  porque operador entrar ou canal cair não geram evento de conversa.
 - Extrair a lógica de `TeamCapacityView` para um serviço compartilhado, em vez de duplicá-la.
 - Conferir `EXPLAIN` com volume real antes de ligar.
 

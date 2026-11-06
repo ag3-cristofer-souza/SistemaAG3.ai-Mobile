@@ -3,6 +3,8 @@ import { realtimeUrl } from "@/config/runtimeEnv";
 import { getToken } from "@/lib/session";
 import { RealtimeClient, type RealtimeState } from "./client";
 
+export type { RealtimeChange } from "./client";
+
 export const realtime = new RealtimeClient({ url: realtimeUrl, token: getToken });
 
 export const useRealtimeState = (): RealtimeState =>

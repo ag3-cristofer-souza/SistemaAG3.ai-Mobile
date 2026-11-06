@@ -202,4 +202,83 @@ describe("RealtimeClient", () => {
     last().serverSend({ type: "revoked", company_id: "c1" });
     expect(revoked).toHaveBeenCalledWith("c1");
   });
+
+  describe("conversa em foco", () => {
+    const subscribed = () =>
+      last().serverSend({ type: "subscribed", company_id: "c1", tables: [] });
+    const focusSent = () => last().sent.filter((message) => message.type === "focus");
+
+    it("avisa o servidor, e o foco pedido antes de conectar espera a assinatura", () => {
+      const client = makeClient();
+      client.connect("c1");
+      client.focus("conv-1");
+      last().serverOpen();
+      expect(focusSent()).toEqual([]);
+      subscribed();
+      expect(focusSent()).toEqual([{ type: "focus", conversation_id: "conv-1" }]);
+      client.focus(null);
+      expect(focusSent().at(-1)).toEqual({ type: "focus", conversation_id: null });
+    });
+
+    it("guarda o foco pedido antes de existir conexão, como ao abrir por notificação", () => {
+      const client = makeClient();
+      client.focus("conv-1");
+      client.connect("c1");
+      last().serverOpen();
+      subscribed();
+      expect(focusSent()).toEqual([{ type: "focus", conversation_id: "conv-1" }]);
+    });
+
+    it("refaz o foco depois de reconectar", () => {
+      const client = makeClient();
+      client.connect("c1");
+      last().serverOpen();
+      subscribed();
+      client.focus("conv-1");
+      last().close(1006);
+      vi.advanceTimersByTime(1000);
+      last().serverOpen();
+      subscribed();
+      expect(focusSent()).toEqual([{ type: "focus", conversation_id: "conv-1" }]);
+    });
+
+    it("confirma, e avisa quando o acesso é retirado ou negado", () => {
+      const client = makeClient();
+      const focused = vi.fn();
+      const lost = vi.fn();
+      client.onFocused(focused);
+      client.onUnfocused(lost);
+      client.connect("c1");
+      last().serverOpen();
+      subscribed();
+      client.focus("conv-1");
+      last().serverSend({ type: "focused", conversation_id: "conv-1" });
+      expect(focused).toHaveBeenCalledWith("conv-1");
+      last().serverSend({ type: "unfocused", conversation_id: "outra" });
+      expect(lost).not.toHaveBeenCalled();
+      last().serverSend({ type: "unfocused", conversation_id: "conv-1", reason: "revoked" });
+      expect(lost).toHaveBeenCalledWith("conv-1");
+      last().serverOpen();
+      subscribed();
+      expect(focusSent().filter((message) => message.conversation_id === "conv-1")).toHaveLength(1);
+
+      client.focus("conv-2");
+      last().serverSend({
+        type: "error",
+        detail: "Conversa não encontrada",
+        conversation_id: "conv-2",
+      });
+      expect(lost).toHaveBeenCalledWith("conv-2");
+    });
+
+    it("trocar de empresa solta o foco", () => {
+      const client = makeClient();
+      client.connect("c1");
+      client.focus("conv-1");
+      client.connect("c2");
+      last().serverOpen();
+      subscribed();
+      expect(focusSent()).toEqual([]);
+    });
+  });
 });

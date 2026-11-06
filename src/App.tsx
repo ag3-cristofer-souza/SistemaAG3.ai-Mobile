@@ -1,10 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ApiError } from "@/api/client";
+import { Abertura } from "@/features/abertura/Abertura";
 import { AuthProvider } from "@/features/auth/AuthProvider";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { RequireAuth } from "@/features/auth/RequireAuth";
 import { ContaPage } from "@/features/conta/ContaPage";
+import { ChatPage } from "@/features/conversas/ChatPage";
 import { ConversasPage } from "@/features/conversas/ConversasPage";
 import { DiagnosticsPage } from "@/features/diagnostics/DiagnosticsPage";
 import { AgoraPage } from "@/features/gestor/AgoraPage";
@@ -27,6 +29,7 @@ const queryClient = new QueryClient({
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <Abertura />
       <BrowserRouter>
         <AuthProvider>
           <Routes>
@@ -41,6 +44,7 @@ export function App() {
                       <Route path="/agora" element={<AgoraPage />} />
                     </Route>
                     <Route path="/conversas" element={<ConversasPage />} />
+                    <Route path="/conversas/:id" element={<ChatPage />} />
                     <Route path="/conta" element={<ContaPage />} />
                   </Route>
                 </Route>

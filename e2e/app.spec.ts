@@ -23,6 +23,8 @@ interface MockOptions {
   live?: Record<string, unknown>;
   cards?: Array<Record<string, unknown>>;
   agenda?: Array<Record<string, unknown>>;
+  preferencesFail?: boolean;
+  preferencesSaveFail?: boolean;
 }
 
 const CONV = {
@@ -160,6 +162,13 @@ async function mockBackend(page: Page, options: MockOptions = {}) {
     { company_id: "c1", company_name: "Empresa Um", is_primary: true },
   ];
   let savedCount = 0;
+  const preferencias = {
+    new_message: true,
+    assignment: true,
+    agenda: true,
+    manager_alerts: true,
+    queue_alert_minutes: 10,
+  };
   const notes: unknown[] = [];
   const crmNotes: unknown[] = [];
   const json = (body: unknown, status = 200) => ({
@@ -265,6 +274,14 @@ async function mockBackend(page: Page, options: MockOptions = {}) {
           ],
         })
       );
+    }
+    if (path === "/push/preferences") {
+      if (options.preferencesFail) return route.fulfill(json({ detail: "x" }, 500));
+      if (request.method() === "PATCH") {
+        if (options.preferencesSaveFail) return route.fulfill(json({ detail: "x" }, 500));
+        Object.assign(preferencias, request.postDataJSON());
+      }
+      return route.fulfill(json({ data: preferencias }));
     }
     if (path === "/calendar/feed") {
       const atrasadas = new URL(request.url()).searchParams.get("overdue") === "true";
@@ -1003,6 +1020,56 @@ test("conta mostra o estado das notificações deste aparelho", async ({ page, c
   await context.grantPermissions(["notifications"]);
   await page.reload();
   await expect(page.getByText("Ativadas neste aparelho")).toBeVisible();
+});
+
+test("operador escolhe o que receber, e a escolha vai para o Django", async ({ page, context }) => {
+  await context.grantPermissions(["notifications"]);
+  await mockBackend(page, { role: "operator" });
+  await abrirAgenda(page, "/conta");
+  const mensagens = page.getByRole("switch", { name: "Mensagens novas" });
+  await expect(mensagens).toBeChecked();
+  await expect(page.getByRole("switch", { name: "Alertas da operação" })).toHaveCount(0);
+  const pedido = page.waitForRequest(
+    (r) => r.url().endsWith("/push/preferences") && r.method() === "PATCH"
+  );
+  await mensagens.click();
+  expect((await pedido).postDataJSON()).toEqual({ new_message: false });
+  await expect(mensagens).not.toBeChecked();
+  await page.reload();
+  await expect(page.getByRole("switch", { name: "Mensagens novas" })).not.toBeChecked();
+});
+
+test("gestor liga os alertas e escolhe o limite da fila", async ({ page, context }) => {
+  await context.grantPermissions(["notifications"]);
+  await mockBackend(page, { role: "manager" });
+  await abrirAgenda(page, "/conta");
+  const limite = page.getByLabel("Avisar quando alguém esperar na fila por mais de");
+  await expect(limite).toHaveValue("10");
+  const pedido = page.waitForRequest(
+    (r) => r.url().endsWith("/push/preferences") && r.method() === "PATCH"
+  );
+  await limite.selectOption("30");
+  expect((await pedido).postDataJSON()).toEqual({ queue_alert_minutes: 30 });
+  await page.getByRole("switch", { name: /Alertas da operação/ }).click();
+  await expect(limite).toHaveCount(0);
+});
+
+test("falha ao salvar a preferência desfaz o interruptor e avisa", async ({ page, context }) => {
+  await context.grantPermissions(["notifications"]);
+  await mockBackend(page, { role: "operator", preferencesSaveFail: true });
+  await abrirAgenda(page, "/conta");
+  const compromissos = page.getByRole("switch", { name: "Compromissos" });
+  await compromissos.click();
+  await expect(page.getByText("Não foi possível salvar. Tente de novo.")).toBeVisible();
+  await expect(compromissos).toBeChecked();
+});
+
+test("servidor sem preferências não atrapalha o resto da conta", async ({ page, context }) => {
+  await context.grantPermissions(["notifications"]);
+  await mockBackend(page, { role: "operator", preferencesFail: true });
+  await abrirAgenda(page, "/conta");
+  await expect(page.getByText("Não foi possível carregar o que você escolheu")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sair" })).toBeVisible();
 });
 
 test("conversa fora do alcance aparece como indisponível, inclusive por link", async ({ page }) => {

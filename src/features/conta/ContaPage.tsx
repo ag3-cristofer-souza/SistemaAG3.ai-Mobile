@@ -1,24 +1,136 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, BellOff, ChevronRight, LogOut, Stethoscope } from "lucide-react";
 import { useId, useState } from "react";
 import { Link } from "react-router-dom";
+import { pushApi, type PushPreferences } from "@/api/push";
 import { useAuth, useCurrentUser } from "@/features/auth/AuthProvider";
 import { useWorkspace } from "@/features/workspace/WorkspaceProvider";
 import { enablePush, getPushStatus, type PushStatus } from "@/lib/push";
-import { ROLE_LABEL } from "@/lib/roles";
+import { isManagerRole, ROLE_LABEL } from "@/lib/roles";
 import { Avatar } from "@/ui/avatar";
 import { Button } from "@/ui/button";
 import { ErrorText } from "@/ui/feedback";
 
 const PUSH_TEXT: Record<PushStatus, string> = {
-  granted:
-    "Ativadas neste aparelho. Você recebe avisos de mensagem nova e de conversa atribuída ou transferida.",
+  granted: "Ativadas neste aparelho. O que você escolher abaixo vale para todos os seus aparelhos.",
   default:
-    "Receba avisos de mensagem nova e de conversa atribuída ou transferida, mesmo com o app fechado.",
+    "Receba avisos de mensagem nova, de conversa atribuída ou transferida e de compromissos, mesmo com o app fechado.",
   denied:
     "Bloqueadas neste aparelho. Para ativar, libere as notificações deste site nas configurações do navegador.",
   "needs-install": "No iPhone, os avisos só funcionam com o app instalado na tela de início.",
   unsupported: "Este navegador não aceita notificações.",
 };
+
+const QUEUE_LIMITS = [5, 10, 15, 30, 60];
+const PREFERENCES_KEY = ["push", "preferences"];
+
+function Toggle({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex min-h-11 items-center justify-between gap-3">
+      <span>
+        <span className="block text-sm">{label}</span>
+        {hint && <span className="block text-xs text-muted-foreground">{hint}</span>}
+      </span>
+      <input
+        type="checkbox"
+        role="switch"
+        className="size-6 shrink-0 accent-primary"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+    </label>
+  );
+}
+
+function NotificationPreferences() {
+  const { role } = useWorkspace();
+  const queryClient = useQueryClient();
+  const limitSelect = useId();
+  const preferences = useQuery({ queryKey: PREFERENCES_KEY, queryFn: pushApi.preferences });
+  const save = useMutation({
+    mutationFn: pushApi.updatePreferences,
+    // Muda na hora e volta atrás se o servidor recusar: o interruptor não pode ficar mentindo.
+    onMutate: (fields: Partial<PushPreferences>) => {
+      const previous = queryClient.getQueryData<PushPreferences>(PREFERENCES_KEY);
+      if (previous) queryClient.setQueryData(PREFERENCES_KEY, { ...previous, ...fields });
+      return { previous };
+    },
+    onError: (_error, _fields, context) => {
+      if (context?.previous) queryClient.setQueryData(PREFERENCES_KEY, context.previous);
+    },
+    onSuccess: (saved) => queryClient.setQueryData(PREFERENCES_KEY, saved),
+  });
+
+  if (preferences.isPending) return null;
+  if (!preferences.data) {
+    return <ErrorText>Não foi possível carregar o que você escolheu receber.</ErrorText>;
+  }
+  const value = preferences.data;
+  const limits = QUEUE_LIMITS.includes(value.queue_alert_minutes)
+    ? QUEUE_LIMITS
+    : [value.queue_alert_minutes, ...QUEUE_LIMITS];
+  return (
+    <div className="space-y-1 border-t pt-2">
+      <Toggle
+        label="Mensagens novas"
+        checked={value.new_message}
+        onChange={(new_message) => save.mutate({ new_message })}
+      />
+      <Toggle
+        label="Conversas atribuídas ou transferidas"
+        checked={value.assignment}
+        onChange={(assignment) => save.mutate({ assignment })}
+      />
+      <Toggle
+        label="Compromissos"
+        checked={value.agenda}
+        onChange={(agenda) => save.mutate({ agenda })}
+      />
+      {isManagerRole(role) && (
+        <>
+          <Toggle
+            label="Alertas da operação"
+            hint="Fila sem dono e canal desconectado, das 8h às 20h."
+            checked={value.manager_alerts}
+            onChange={(manager_alerts) => save.mutate({ manager_alerts })}
+          />
+          {value.manager_alerts && (
+            <div className="space-y-1.5 pb-1">
+              <label htmlFor={limitSelect} className="block text-sm">
+                Avisar quando alguém esperar na fila por mais de
+              </label>
+              <select
+                id={limitSelect}
+                className="min-h-11 w-full rounded-md border border-input bg-background px-3 text-base"
+                value={value.queue_alert_minutes}
+                onChange={(event) =>
+                  save.mutate({ queue_alert_minutes: Number(event.target.value) })
+                }
+              >
+                {limits.map((minutes) => (
+                  <option key={minutes} value={minutes}>
+                    {minutes} min
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </>
+      )}
+      <ErrorText>{save.isError && "Não foi possível salvar. Tente de novo."}</ErrorText>
+    </div>
+  );
+}
 
 function NotificationsCard() {
   const [status, setStatus] = useState(getPushStatus);
@@ -48,6 +160,7 @@ function NotificationsCard() {
         </div>
       </div>
       <ErrorText>{error}</ErrorText>
+      {status === "granted" && <NotificationPreferences />}
       {status === "default" && (
         <Button block loading={busy} onClick={() => void activate()}>
           Ativar notificações

@@ -59,6 +59,10 @@ describe("aparência por tipo", () => {
     expect(options({ type: "conversation_transferred" }).icon).toBe(
       "/icons/aviso-transferencia.png"
     );
+    expect(options({ type: "manager_alert" })).toMatchObject({
+      icon: "/icons/aviso-alerta.png",
+      actions: [{ action: "open", title: "Ver painel" }],
+    });
     expect(options({ type: "agenda" })).toMatchObject({
       icon: "/icons/aviso-agenda.png",
       actions: [{ action: "open", title: "Ver compromisso" }],

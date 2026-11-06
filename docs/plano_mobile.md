@@ -4,7 +4,7 @@ Versão 3, 06/11/2026. Caminhos de código são relativos aos repositórios `Sis
 `SistemaAG3.ai-Frontend`.
 
 **Estado:** app no ar em `mobile.ag3system.com`, com login, tempo real e notificação real pelo Firebase confirmados em Android. Onda 9
-commitada (adendo hh), aguardando deploy e teste real. Onda 10, parte 1, escrita (adendo hi): aguarda suíte e deploy. Pendentes: D5, D6, áudio como nota de voz na Meta e na Wafly, testes
+commitada (adendo hh), aguardando deploy e teste real. Onda 10, partes 1 e 2, escritas (adendos hi e hj): aguardam suíte e deploy. Pendentes: D5, D6, áudio como nota de voz na Meta e na Wafly, testes
 em iPhone, e lembrete por WhatsApp ao cliente, que precisa de número Meta de teste.
 
 ## 1. Resumo
@@ -380,7 +380,7 @@ devolve a mensagem já criada, sem novo envio ao provedor. Não exige migration.
 | **7. Atendimento e CRM** | Etapa do funil na conversa, descrição no CRM, ícone de informações do lead com histórico, conversas com a IA | Mudança no app aparece igual no board do painel | Escrita (só app) |
 | **8. Dashboards** | Agora, Comercial, Marketing (UTM e Pixel), PerformaZap, indicadores do operador | Totais iguais aos do painel no mesmo período; operador não acessa dados brutos | Escrita (só app) |
 | **9. Calendário** | Mini calendário do mês, recolhível para a semana no celular e fixo ao lado da lista em tela larga; ver, criar, editar e excluir, com histórico no lead; aviso no aparelho e no WhatsApp | Cada ação aparece no histórico do lead; aviso chega nos dois canais | Escrita (adendo hh); WhatsApp segue sem validação |
-| **10. Fechamento** | Preferências de notificação, histórico de envios, botão no painel web, alertas do gestor, revisão de segurança, 8.1 etapa 2, piloto | 2 semanas de uso real sem incidente grave | Parte 1 escrita (adendo hi): preferências, histórico e alertas. Faltam botão no painel, segurança, etapa 2 e piloto |
+| **10. Fechamento** | Preferências de notificação, histórico de envios, botão no painel web, alertas do gestor, revisão de segurança, 8.1 etapa 2, piloto | 2 semanas de uso real sem incidente grave | Escritos (adendos hi e hj): preferências, histórico, alertas e botão no painel. Faltam segurança, etapa 2 e piloto |
 
 **Como cada onda chega à produção:** Daniel roda a suíte e commita. Só app: o `push` no Mobile testa e implanta sozinho (`ci.yml`).
 Com backend: `push` → `build` verde → manifests novos, se houver → workflow `deploy`, com aprovação de migrations.

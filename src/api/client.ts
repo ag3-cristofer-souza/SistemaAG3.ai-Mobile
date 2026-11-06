@@ -21,7 +21,8 @@ export class ApiError extends Error {
 
 /** Texto para o usuário. O backend devolve `detail` como texto, lista ou objeto. */
 export function formatDetail(data: unknown, status: number): string {
-  if (typeof data === "string" && data.trim()) return data;
+  // Página de erro de proxy (nginx, Cloudflare) não é texto para mostrar a ninguém.
+  if (typeof data === "string" && data.trim() && !data.trimStart().startsWith("<")) return data;
   const detail = (data as { detail?: unknown } | null | undefined)?.detail;
   if (typeof detail === "string" && detail.trim()) return detail;
   if (Array.isArray(detail)) {
@@ -36,6 +37,9 @@ export function formatDetail(data: unknown, status: number): string {
 }
 
 const http = axios.create({ timeout: 30_000 });
+
+export const MISSING_CONFIG =
+  "O app não carregou o endereço do servidor. Feche, abra de novo e, se continuar, limpe os dados do site.";
 
 http.interceptors.request.use((config) => {
   config.baseURL = apiUrl();
@@ -61,6 +65,8 @@ function toApiError(error: unknown): ApiError {
 }
 
 async function call<T>(config: AxiosRequestConfig, schema: ZodType<T>): Promise<T> {
+  // Sem o endereço, o pedido iria para o próprio site do app, e o erro não diria nada a quem está usando.
+  if (!apiUrl()) throw new ApiError(0, MISSING_CONFIG);
   let data: unknown;
   try {
     data = (await http.request(config)).data;

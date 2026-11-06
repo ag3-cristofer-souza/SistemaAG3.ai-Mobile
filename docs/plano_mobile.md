@@ -3,8 +3,9 @@
 Versão 3, 06/11/2026. Caminhos de código são relativos aos repositórios `SistemaAG3.ai-Backend-Django` e
 `SistemaAG3.ai-Frontend`.
 
-**Estado:** Ondas 1 a 4 commitadas (a 4 só mudou o app). Faltam o teste contra o Django local e os testes em aparelho real
-(seção 9), inclusive áudio como nota de voz na Meta e na Wafly.
+**Estado:** app no ar em `mobile.ag3system.com`, com login, tempo real e notificação de teste confirmados em Android. Onda 5, parte
+dos avisos automáticos, escrita: aguarda suíte, deploy do worker e teste no aparelho. Faltam na Onda 5: preferências, histórico,
+botão no painel e alertas do gestor. Pendentes: áudio como nota de voz na Meta e na Wafly, e testes em iPhone.
 
 ## 1. Resumo
 
@@ -413,6 +414,6 @@ nele. Se falharem, as saídas estão na seção 12.
 | # | Decisão | Recomendação |
 |---|---|---|
 | D1 | Aplicar a regra de 8.3 também no painel web | Sim, em etapa própria depois do piloto: fecha a API e o WebSocket, mas o link direto para conversa de outro deixa de abrir |
-| D2 | Texto da notificação | Nome do contato + "Nova mensagem", sem o conteúdo |
+| D2 | Texto da notificação | **Aplicada a recomendação:** nome do contato + "Nova mensagem", sem o conteúdo. Daniel pode mudar |
 | D3 | Validade da sessão no app | Expira após 30 dias sem uso; 2FA em cada aparelho novo, para quem tem 2FA ligado |
 | D4 | Hospedagem do webapp | **Decidido:** Hostinger, no k3s atual (7.1) |

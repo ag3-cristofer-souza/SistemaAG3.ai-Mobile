@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { NavLink, Navigate, Outlet, useMatch, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useWorkspace } from "@/features/workspace/WorkspaceProvider";
+import { keepDeviceRegistered } from "@/lib/push";
 import { isManagerRole } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 import { realtime, useRealtimeState } from "@/realtime";
@@ -60,6 +61,9 @@ export function AppShell() {
   const state = useRealtimeState();
   useRealtimeBridge(workspace.company_id);
   useNotificationNavigation();
+  useEffect(() => {
+    void keepDeviceRegistered();
+  }, []);
   const inChat = useMatch("/conversas/:id");
   const status = STATUS[state];
 

@@ -12,6 +12,7 @@ import { authApi, type Me } from "@/api/auth";
 import { ApiError, setUnauthorizedHandler } from "@/api/client";
 import { clearSession, getToken, hasOwnSession, setToken } from "@/lib/session";
 import { outbox } from "@/features/conversas/outbox";
+import { forgetDeviceRegistration } from "@/lib/push";
 import { realtime } from "@/realtime";
 
 type AuthState =
@@ -42,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearSession();
     queryClient.clear();
     outbox.clear();
+    forgetDeviceRegistration();
     setState({ status: "anon" });
   }, [queryClient]);
 

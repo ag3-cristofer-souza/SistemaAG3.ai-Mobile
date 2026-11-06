@@ -174,6 +174,12 @@ async function mockBackend(page: Page, options: MockOptions = {}) {
       if (chat[2] === "/messages") {
         return route.fulfill(json({ data: options.messages ?? [], page: 1, limit: 50 }));
       }
+      if (chat[2] === "/assign") {
+        // Como o servidor: a conversa passa a estar com quem assumiu.
+        const assumed = (options.conversations ?? []).find((item) => item.id === chat[1]);
+        if (assumed) Object.assign(assumed, { status: "in_attendance", assigned_agent_id: "u1" });
+        return route.fulfill(json({ data: {} }));
+      }
       if (chat[2] === "/send-message") {
         const body = request.postDataJSON() as { message: string; message_type: string };
         return route.fulfill(
@@ -645,6 +651,44 @@ test("transferir envia destino e motivo e volta para a lista", async ({ page }) 
   await expect(page).toHaveURL(/\/conversas$/);
 });
 
+test("aviso de outra empresa abre a conversa nessa empresa", async ({ page }) => {
+  await mockBackend(page, {
+    role: "admin",
+    conversations: [CONV],
+    messages: [MSG],
+    workspaces: [
+      { company_id: "c1", company_name: "Empresa Um", is_primary: true },
+      { company_id: "c2", company_name: "Empresa Dois", is_primary: false },
+    ],
+  });
+  const companies: Array<string | undefined> = [];
+  page.on("request", (request) => {
+    if (request.url().endsWith("/conversations/conv-1"))
+      companies.push(request.headers()["x-company-id"]);
+  });
+  await page.addInitScript(() => {
+    localStorage.setItem("ag3.token", "tok");
+    localStorage.setItem("ag3.install.skip", "1");
+    localStorage.setItem("ag3.workspace", "c1");
+  });
+  await page.goto("/conversas/conv-1?empresa=c2");
+  await expect(page.getByRole("heading", { name: "Maria Cliente" })).toBeVisible();
+  expect(companies.length).toBeGreaterThan(0);
+  expect(new Set(companies)).toEqual(new Set(["c2"]));
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("ag3.workspace"))).toBe("c2");
+});
+
+test("conta mostra o estado das notificações deste aparelho", async ({ page, context }) => {
+  await mockBackend(page, { sessionToken: true });
+  await passInstallGate(page);
+  await login(page);
+  await page.getByRole("link", { name: "Conta" }).click();
+  await expect(page.getByRole("heading", { name: "Notificações" })).toBeVisible();
+  await context.grantPermissions(["notifications"]);
+  await page.reload();
+  await expect(page.getByText("Ativadas neste aparelho")).toBeVisible();
+});
+
 test("conversa fora do alcance aparece como indisponível, inclusive por link", async ({ page }) => {
   await mockBackend(page, { denied: new Set(["alheia"]) });
   await page.addInitScript(() => {
@@ -793,7 +837,7 @@ test("diagnóstico dispara notificação local pelo service worker", async ({ pa
     const registration = await navigator.serviceWorker.ready;
     return (await registration.getNotifications()).map((item) => item.title);
   });
-  expect(titles).toContain("AG3");
+  expect(titles).toContain("Notificações ativas");
 });
 
 test("sem Firebase configurado no Django, o diagnóstico explica e o app segue funcionando", async ({

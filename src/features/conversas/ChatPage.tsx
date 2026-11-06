@@ -19,6 +19,7 @@ import {
   type Message,
 } from "@/api/conversations";
 import { formatDayLabel, isSameDay } from "@/lib/format";
+import { clearConversationNotifications } from "@/lib/push";
 import { realtime, type RealtimeChange } from "@/realtime";
 import { Avatar } from "@/ui/avatar";
 import { Button } from "@/ui/button";
@@ -100,6 +101,7 @@ function useLiveMessages(conversationId: string) {
     });
     realtime.focus(conversationId);
     void conversationsApi.markRead(conversationId);
+    void clearConversationNotifications(conversationId).catch(() => undefined);
     return () => {
       realtime.focus(null);
       offMessage();

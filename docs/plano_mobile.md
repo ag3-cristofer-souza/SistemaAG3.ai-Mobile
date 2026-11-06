@@ -3,8 +3,8 @@
 Versão 3, 06/11/2026. Caminhos de código são relativos aos repositórios `SistemaAG3.ai-Backend-Django` e
 `SistemaAG3.ai-Frontend`.
 
-**Estado:** Ondas 0, 1 e 2 commitadas, com a suíte do backend verde. Onda 3 escrita: aguarda suíte do backend, teste contra
-o Django local e commit. Testes em aparelho real pendentes (seção 9).
+**Estado:** Ondas 1 a 4 commitadas (a 4 só mudou o app). Faltam o teste contra o Django local e os testes em aparelho real
+(seção 9), inclusive áudio como nota de voz na Meta e na Wafly.
 
 ## 1. Resumo
 
@@ -194,6 +194,9 @@ no repositório do app.
 
 **Recomendação: Hostinger.** Com uma API única, a Railway não traz ganho de disponibilidade e adiciona mais um lugar para
 operar. Nas duas, `sw.js` precisa ir sem cache na borda.
+
+**Decisão do Daniel (06/11): Railway**, com `mobile.ag3system.com` em nuvem laranja na Cloudflare, que exige o modo SSL **Full**.
+A imagem foi conferida localmente com `PORT=8080`. Variáveis: `PORT`, `VITE_API_URL` e `VITE_REALTIME_URL`.
 
 **Endereços:** API em `https://api.ag3system.com` e WebSocket em `wss://api.ag3system.com/ws/realtime`, como em
 `k8s/base/front.yaml` (confirmado pelo Daniel).

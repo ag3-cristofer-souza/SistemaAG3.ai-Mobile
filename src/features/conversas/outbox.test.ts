@@ -58,7 +58,7 @@ describe("envio", () => {
     await flush();
     expect(box.snapshot("c1")).toEqual([]);
     expect(delivered).toHaveBeenCalledWith("c1", SAVED);
-    expect(transport.send.mock.calls[0]).toMatchObject([
+    expect(vi.mocked(transport.send).mock.calls[0]).toMatchObject([
       "c1",
       { message: "oi", message_type: "text" },
     ]);
@@ -127,8 +127,10 @@ describe("envio", () => {
     box.add("c1", { kind: "text", text: "resposta", quote });
     box.add("c1", { kind: "text", text: "resposta", quote: { ...quote, providerId: "Z1" } });
     await flush();
-    expect(transport.send.mock.calls[0]![1].message).toBe("> *Ana*: bom dia\n\nresposta");
-    expect(transport.send.mock.calls[1]![1]).toMatchObject({
+    expect(vi.mocked(transport.send).mock.calls[0]![1].message).toBe(
+      "> *Ana*: bom dia\n\nresposta"
+    );
+    expect(vi.mocked(transport.send).mock.calls[1]![1]).toMatchObject({
       message: "resposta",
       quoted_message_id: "Z1",
     });

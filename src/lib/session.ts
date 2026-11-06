@@ -1,6 +1,7 @@
 /** Sessão guardada no aparelho. O acesso ao storage pode falhar (modo privado), então nada aqui lança erro. */
 const TOKEN_KEY = "ag3.token";
 const WORKSPACE_KEY = "ag3.workspace";
+const AGENDA_WEEK_KEY = "ag3.agenda.semana";
 
 function read(key: string): string | null {
   try {
@@ -25,6 +26,8 @@ export const hasOwnSession = () => (read(TOKEN_KEY) ?? "").startsWith("ag3s_");
 export const setToken = (token: string) => write(TOKEN_KEY, token);
 export const getWorkspaceId = () => read(WORKSPACE_KEY);
 export const setWorkspaceId = (id: string | null) => write(WORKSPACE_KEY, id);
+export const getAgendaWeekOnly = () => read(AGENDA_WEEK_KEY) === "1";
+export const setAgendaWeekOnly = (on: boolean) => write(AGENDA_WEEK_KEY, on ? "1" : null);
 
 /** Apaga o que identifica o usuário. A escolha de pular a instalação fica, porque é do aparelho. */
 export function clearSession(): void {

@@ -3,8 +3,9 @@
 Versão 3, 06/11/2026. Caminhos de código são relativos aos repositórios `SistemaAG3.ai-Backend-Django` e
 `SistemaAG3.ai-Frontend`.
 
-**Estado:** app no ar em `mobile.ag3system.com`, com login, tempo real e notificação real pelo Firebase confirmados em Android. Ondas
-7 e 8 escritas, só no app. Próximas: 9 e 10 (seção 9). Pendentes: D5, D6, áudio como nota de voz na Meta e na Wafly, e testes em iPhone.
+**Estado:** app no ar em `mobile.ag3system.com`, com login, tempo real e notificação real pelo Firebase confirmados em Android. Onda 9
+escrita (adendo hh): aguarda suíte e deploy. Próxima: 10 (seção 9). Pendentes: D5, D6, áudio como nota de voz na Meta e na Wafly, testes
+em iPhone, e lembrete por WhatsApp ao cliente, que precisa de número Meta de teste.
 
 ## 1. Resumo
 
@@ -378,7 +379,7 @@ devolve a mensagem já criada, sem novo envio ao provedor. Não exige migration.
 | **6. Tema e navegação** | Tema sempre claro, chat no estilo WhatsApp, abas Atendimento, Calendário, Dashboards e Conta | Sem modo escuro do aparelho; azul só na abertura e no login | Escrita |
 | **7. Atendimento e CRM** | Etapa do funil na conversa, descrição no CRM, ícone de informações do lead com histórico, conversas com a IA | Mudança no app aparece igual no board do painel | Escrita (só app) |
 | **8. Dashboards** | Agora, Comercial, Marketing (UTM e Pixel), PerformaZap, indicadores do operador | Totais iguais aos do painel no mesmo período; operador não acessa dados brutos | Escrita (só app) |
-| **9. Calendário** | Ver, criar, editar e excluir, com histórico no lead; aviso no aparelho e no WhatsApp | Cada ação aparece no histórico do lead; aviso chega nos dois canais | 2 sem. |
+| **9. Calendário** | Mini calendário do mês, recolhível para a semana no celular e fixo ao lado da lista em tela larga; ver, criar, editar e excluir, com histórico no lead; aviso no aparelho e no WhatsApp | Cada ação aparece no histórico do lead; aviso chega nos dois canais | Escrita (adendo hh); WhatsApp segue sem validação |
 | **10. Fechamento** | Preferências de notificação, histórico de envios, botão no painel web, alertas do gestor, revisão de segurança, 8.1 etapa 2, piloto | 2 semanas de uso real sem incidente grave | 1–2 sem. + piloto |
 
 **Como cada onda chega à produção:** Daniel roda a suíte e commita. Só app: o `push` no Mobile testa e implanta sozinho (`ci.yml`).

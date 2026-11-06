@@ -88,6 +88,10 @@ const HISTORY_LABEL: Record<string, string> = {
   atendimento_transferido: "Atendimento transferido",
   atendimento_fila: "Voltou para a fila",
   ligacao: "Ligação",
+  agenda_criado: "Compromisso criado",
+  agenda_alterado: "Compromisso alterado",
+  agenda_concluido: "Compromisso concluído",
+  agenda_excluido: "Compromisso excluído",
 };
 
 export const historyLabel = (kind: string) => HISTORY_LABEL[kind] ?? "Atualização";

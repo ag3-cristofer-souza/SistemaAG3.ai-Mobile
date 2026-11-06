@@ -96,6 +96,7 @@ export const api = {
     call({ method: "PUT", url, data: body }, schema),
   patch: <T>(url: string, schema: ZodType<T>, body?: unknown) =>
     call({ method: "PATCH", url, data: body }, schema),
+  delete: <T>(url: string, schema: ZodType<T>) => call({ method: "DELETE", url }, schema),
   /** Rede de celular é lenta para arquivo: o limite padrão de 30 s derrubaria uploads saudáveis. */
   upload: <T>(url: string, schema: ZodType<T>, form: FormData) =>
     call({ method: "POST", url, data: form, timeout: 5 * 60_000 }, schema),

@@ -12,8 +12,8 @@ describe("navegação por papel", () => {
   });
 
   it("só gestor e admin têm Dashboards; operador vê os próprios números", () => {
-    expect(labels("operator")).toEqual(["Atendimento", "Meus números", "Conta"]);
-    expect(labels("manager")).toEqual(["Atendimento", "Dashboards", "Conta"]);
-    expect(labels("admin")).toEqual(["Atendimento", "Dashboards", "Conta"]);
+    expect(labels("operator")).toEqual(["Atendimento", "Calendário", "Meus números", "Conta"]);
+    expect(labels("manager")).toEqual(["Atendimento", "Calendário", "Dashboards", "Conta"]);
+    expect(labels("admin")).toEqual(["Atendimento", "Calendário", "Dashboards", "Conta"]);
   });
 });

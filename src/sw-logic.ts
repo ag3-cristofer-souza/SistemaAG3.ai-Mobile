@@ -1,6 +1,11 @@
 /** Regras puras do service worker, separadas para poderem ser testadas. */
 export type PushKind =
-  "new_message" | "conversation_assigned" | "conversation_transferred" | "test" | "generic";
+  | "new_message"
+  | "conversation_assigned"
+  | "conversation_transferred"
+  | "agenda"
+  | "test"
+  | "generic";
 
 export interface PushView {
   kind: PushKind;
@@ -31,6 +36,7 @@ const KINDS: readonly PushKind[] = [
   "new_message",
   "conversation_assigned",
   "conversation_transferred",
+  "agenda",
   "test",
 ];
 
@@ -79,6 +85,7 @@ const LOOK: Record<PushKind, { icon: string; vibrate: number[]; action: string }
     vibrate: [220, 100, 220],
     action: "Ver conversa",
   },
+  agenda: { icon: "/icons/aviso-agenda.png", vibrate: [220, 100, 220], action: "Ver compromisso" },
   test: { icon: "/icons/aviso-ativo.png", vibrate: [120], action: "Abrir o app" },
   generic: { icon: "/icons/aviso-ativo.png", vibrate: [120], action: "Abrir o app" },
 };

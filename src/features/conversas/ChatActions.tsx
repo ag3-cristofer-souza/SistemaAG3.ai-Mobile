@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRightLeft,
   Bot,
+  CalendarPlus,
   CheckCircle2,
   MoreVertical,
   NotebookPen,
@@ -20,6 +21,7 @@ import { Button } from "@/ui/button";
 import { ErrorText } from "@/ui/feedback";
 import { Sheet } from "@/ui/sheet";
 import { availableActions } from "./actions";
+import { conversationName } from "./tabs";
 import { useLeadCard } from "./useLeadCard";
 
 const errorText = (error: unknown) =>
@@ -373,6 +375,20 @@ export function ChatActions({ conversation }: { conversation: Conversation }) {
                 icon={CheckCircle2}
                 label="Finalizar atendimento"
                 onClick={() => setPanel("finish")}
+              />
+            )}
+            {conversation.lead_id && (
+              <ActionRow
+                icon={CalendarPlus}
+                label="Agendar compromisso"
+                onClick={() => {
+                  const query = new URLSearchParams({
+                    novo: "1",
+                    lead: conversation.lead_id!,
+                    nome: conversationName(conversation),
+                  });
+                  navigate(`/calendario?${query}`);
+                }}
               />
             )}
             <ActionRow

@@ -22,6 +22,7 @@ interface MockOptions {
   denied?: Set<string>;
   live?: Record<string, unknown>;
   cards?: Array<Record<string, unknown>>;
+  agenda?: Array<Record<string, unknown>>;
 }
 
 const CONV = {
@@ -263,6 +264,31 @@ async function mockBackend(page: Page, options: MockOptions = {}) {
             },
           ],
         })
+      );
+    }
+    if (path === "/calendar/feed") {
+      const atrasadas = new URL(request.url()).searchParams.get("overdue") === "true";
+      return route.fulfill(
+        json({ data: (options.agenda ?? []).filter((item) => Boolean(item.overdue) === atrasadas) })
+      );
+    }
+    const agendaItem = path.match(/^\/calendar\/items\/(event|task)\/([^/]+)$/);
+    if (agendaItem) {
+      const found = (options.agenda ?? []).find((item) => item.id === agendaItem[2]);
+      return route.fulfill(found ? json({ data: found }) : json({ detail: "x" }, 404));
+    }
+    if (path === "/agenda-types") {
+      return route.fulfill(
+        json({ data: [{ id: "t1", name: "Reunião", color: "#3b82f6", applies_to: "both" }] })
+      );
+    }
+    if (path === "/events" || path === "/tasks")
+      return route.fulfill(json({ data: { id: "novo" } }));
+    if (/^\/(events|tasks)\/[^/]+(\/complete)?$/.test(path))
+      return route.fulfill(json({ data: {} }));
+    if (path === "/leads") {
+      return route.fulfill(
+        json({ data: [{ id: "lead-1", name: "Maria Cliente", phone: "5511" }] })
       );
     }
     if (path === "/dashboard/overview") return route.fulfill(json({ data: OVERVIEW }));
@@ -1057,6 +1083,214 @@ test("operador vê os próprios números e não entra em Dashboards", async ({ p
   await expect(page.getByText("Atendimentos novos")).toBeVisible();
   await page.goto("/dashboards");
   await expect(page).toHaveURL(/\/conversas$/);
+});
+
+function agendaHoje(fields: Record<string, unknown> = {}) {
+  const start = new Date();
+  start.setHours(23, 0, 0, 0);
+  return {
+    kind: "event",
+    id: "ev-1",
+    title: "Reunião com Maria",
+    description: "Levar a proposta",
+    start_at: start.toISOString(),
+    end_at: new Date(start.getTime() + 30 * 60_000).toISOString(),
+    status: "confirmed",
+    done: false,
+    overdue: false,
+    attendance: null,
+    type: { id: "t1", name: "Reunião", color: "#3b82f6" },
+    owner: { id: "u1", name: "Pessoa Teste" },
+    lead: { id: "lead-1", name: "Maria Cliente" },
+    meet_link: null,
+    ...fields,
+  };
+}
+
+async function abrirAgenda(page: Page, path = "/calendario") {
+  await page.addInitScript(() => {
+    localStorage.setItem("ag3.token", "tok");
+    localStorage.setItem("ag3.install.skip", "1");
+  });
+  await page.goto(path);
+}
+
+test("calendário mostra o dia, cria um compromisso e todos têm a aba", async ({ page }) => {
+  await mockBackend(page, { role: "operator", agenda: [agendaHoje()] });
+  await abrirAgenda(page);
+  await expect(page.getByRole("link", { name: "Calendário" })).toBeVisible();
+  await expect(page.getByText("Reunião com Maria")).toBeVisible();
+  await expect(page.getByRole("group", { name: "De quem" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Novo compromisso" }).click();
+  await page.getByLabel("Título").fill("Visita técnica");
+  await page.getByLabel("Tipo", { exact: true }).selectOption("t1");
+  await page.getByLabel("Duração").selectOption("60");
+  await page.getByLabel("Lead (opcional)").fill("mari");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: /Maria Cliente/ })
+    .click();
+  const pedido = page.waitForRequest((r) => r.url().endsWith("/events") && r.method() === "POST");
+  await page.getByRole("button", { name: "Salvar", exact: true }).click();
+  const corpo = (await pedido).postDataJSON();
+  expect(corpo).toMatchObject({ title: "Visita técnica", lead_id: "lead-1", type_id: "t1" });
+  expect(corpo.assigned_to).toBeUndefined();
+  expect(new Date(corpo.end_at).getTime() - new Date(corpo.start_at).getTime()).toBe(3_600_000);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("tarefa nova vai para a rota de tarefas, com duração", async ({ page }) => {
+  await mockBackend(page, { role: "operator" });
+  await abrirAgenda(page);
+  await page.getByRole("button", { name: "Novo compromisso" }).click();
+  await page.getByRole("button", { name: "Tarefa" }).click();
+  await page.getByLabel("Título").fill("Ligar");
+  const pedido = page.waitForRequest((r) => r.url().endsWith("/tasks") && r.method() === "POST");
+  await page.getByRole("button", { name: "Salvar", exact: true }).click();
+  expect((await pedido).postDataJSON()).toMatchObject({
+    title: "Ligar",
+    duration_min: 30,
+    status: "todo",
+    assigned_to: "u1",
+  });
+});
+
+test("mini calendário escolhe o dia, muda de mês e recolhe para a semana", async ({ page }) => {
+  await mockBackend(page, { role: "operator", agenda: [agendaHoje()] });
+  const janelas: Array<{ from: string; to: string }> = [];
+  page.on("request", (r) => {
+    const url = new URL(r.url());
+    if (url.pathname === "/calendar/feed" && !url.searchParams.get("overdue")) {
+      janelas.push({ from: url.searchParams.get("from")!, to: url.searchParams.get("to")! });
+    }
+  });
+  await abrirAgenda(page);
+  const hoje = new Date();
+  const mes = (data: Date) => data.toLocaleDateString("pt-BR", { month: "long" });
+  const dias = page.getByRole("group", { name: "Dias do mês" });
+  await expect(
+    dias.getByRole("button", { name: `${hoje.getDate()} de ${mes(hoje)}, com compromissos` })
+  ).toBeVisible();
+  await expect(page.getByRole("group", { name: "Dias da semana" })).toHaveCount(0);
+  await expect(page.getByText("Reunião com Maria")).toBeVisible();
+
+  const outroDia = hoje.getDate() === 15 ? 16 : 15;
+  await dias.getByRole("button", { name: `${outroDia} de ${mes(hoje)}`, exact: true }).click();
+  await expect(page.getByText("Nada marcado neste dia")).toBeVisible();
+
+  await page.getByRole("button", { name: "Próximo mês" }).click();
+  const seguinte = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
+  await expect(
+    page.getByRole("heading", { name: new RegExp(`${mes(seguinte)} de ${seguinte.getFullYear()}`) })
+  ).toBeVisible();
+  await expect.poll(() => janelas.length).toBeGreaterThan(1);
+  for (const { from, to } of janelas) {
+    expect(new Date(to).getTime() - new Date(from).getTime()).toBeLessThanOrEqual(
+      42 * 86_400_000 + 3_600_000
+    );
+  }
+
+  await page.getByRole("button", { name: "Ir para hoje" }).click();
+  await expect(page.getByText("Reunião com Maria")).toBeVisible();
+  await page.getByRole("button", { name: /ver só a semana/ }).click();
+  await expect(page.getByRole("group", { name: "Dias da semana" })).toBeVisible();
+  await expect(dias).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("group", { name: "Dias da semana" })).toBeVisible();
+});
+
+test("em tela larga, o mini calendário fica ao lado da lista e nada estoura a largura", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1920, height: 963 });
+  await mockBackend(page, { role: "manager", agenda: [agendaHoje()] });
+  await abrirAgenda(page);
+  const dias = page.getByRole("group", { name: "Dias do mês" });
+  const compromisso = page.getByRole("button", { name: /Reunião com Maria/ });
+  await expect(compromisso).toBeVisible();
+  const lateral = (await dias.boundingBox())!;
+  const lista = (await compromisso.boundingBox())!;
+  expect(lateral.x + lateral.width).toBeLessThanOrEqual(lista.x);
+  expect(lateral.width).toBeLessThan(400);
+  await expect(page.getByRole("button", { name: /ver só a semana/ })).toHaveCount(0);
+  const novo = (await page.getByRole("button", { name: "Novo compromisso" }).boundingBox())!;
+  expect(novo.x + novo.width).toBeLessThanOrEqual(1920);
+  const todos = (await page.getByRole("button", { name: "Todos" }).boundingBox())!;
+  expect(todos.x + todos.width).toBeLessThanOrEqual(1920);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1920);
+});
+
+test("editar e excluir um compromisso, com confirmação", async ({ page }) => {
+  await mockBackend(page, { role: "operator", agenda: [agendaHoje()] });
+  await abrirAgenda(page);
+  await page.getByRole("button", { name: /Reunião com Maria/ }).click();
+  await expect(page.getByText("Levar a proposta")).toBeVisible();
+  await page.getByRole("button", { name: "Editar" }).click();
+  await page.getByLabel("Título").fill("Reunião final");
+  const patch = page.waitForRequest(
+    (r) => r.url().endsWith("/events/ev-1") && r.method() === "PATCH"
+  );
+  await page.getByRole("button", { name: "Salvar alterações" }).click();
+  expect((await patch).postDataJSON()).toMatchObject({ title: "Reunião final", lead_id: "lead-1" });
+
+  await page.getByRole("button", { name: /Reunião com Maria/ }).click();
+  await page.getByRole("button", { name: "Excluir" }).click();
+  await expect(page.getByText("fica registrada no histórico do lead")).toBeVisible();
+  const apagar = page.waitForRequest(
+    (r) => r.url().endsWith("/events/ev-1") && r.method() === "DELETE"
+  );
+  await page.getByRole("button", { name: "Confirmar exclusão" }).click();
+  await apagar;
+});
+
+test("notificação abre o compromisso; tarefa atrasada aparece hoje e pode ser concluída", async ({
+  page,
+}) => {
+  const atrasada = agendaHoje({ kind: "task", id: "ta-1", title: "Ligar ontem", overdue: true });
+  await mockBackend(page, { role: "operator", agenda: [agendaHoje(), atrasada] });
+  await abrirAgenda(page, "/calendario?item=event:ev-1");
+  const painel = page.getByRole("dialog", { name: "Compromisso" });
+  await expect(painel.getByText("Levar a proposta")).toBeVisible();
+  await painel.getByRole("button", { name: "Fechar" }).click();
+  await expect(page).toHaveURL(/\/calendario$/);
+
+  await expect(page.getByText("Atrasadas: 1")).toBeVisible();
+  await page.getByRole("button", { name: /Ligar ontem/ }).click();
+  const concluir = page.waitForRequest((r) => r.url().endsWith("/tasks/ta-1/complete"));
+  await page.getByRole("button", { name: "Concluir tarefa" }).click();
+  await concluir;
+});
+
+test("conversa abre o agendamento com o lead preenchido", async ({ page }) => {
+  await mockBackend(page, { conversations: [COM_LEAD], messages: [MSG], cards: [{ ...CARD }] });
+  await openChat(page, COM_LEAD);
+  await page.getByRole("button", { name: "Mais ações" }).click();
+  await page.getByRole("button", { name: "Agendar compromisso" }).click();
+  await expect(page).toHaveURL(/\/calendario\?novo=1/);
+  await expect(page.getByRole("dialog", { name: "Novo" })).toBeVisible();
+});
+
+test("gestor escolhe entre os dele e os de todos, e define o responsável", async ({ page }) => {
+  await mockBackend(page, { role: "manager", agenda: [agendaHoje()] });
+  const owners: Array<string | null> = [];
+  page.on("request", (r) => {
+    const url = new URL(r.url());
+    if (url.pathname === "/calendar/feed" && !url.searchParams.get("overdue")) {
+      owners.push(url.searchParams.get("owner"));
+    }
+  });
+  await abrirAgenda(page);
+  await expect(page.getByText("Reunião com Maria")).toBeVisible();
+  expect(owners.at(-1)).toBe("me");
+  await page.getByRole("button", { name: "Todos" }).click();
+  await expect.poll(() => owners.at(-1)).toBeNull();
+  await page.getByRole("button", { name: "Novo compromisso" }).click();
+  await page.getByLabel("Título").fill("Reunião do time");
+  await page.getByLabel("Responsável").selectOption("u2");
+  const pedido = page.waitForRequest((r) => r.url().endsWith("/events") && r.method() === "POST");
+  await page.getByRole("button", { name: "Salvar", exact: true }).click();
+  expect((await pedido).postDataJSON().assigned_to).toBe("u2");
 });
 
 test("login com código em duas etapas", async ({ page }) => {

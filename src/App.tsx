@@ -6,6 +6,7 @@ import { AuthProvider } from "@/features/auth/AuthProvider";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { RequireAuth } from "@/features/auth/RequireAuth";
 import { ContaPage } from "@/features/conta/ContaPage";
+import { CalendarioPage } from "@/features/calendario/CalendarioPage";
 import { ChatPage } from "@/features/conversas/ChatPage";
 import { ConversasPage } from "@/features/conversas/ConversasPage";
 import { DiagnosticsPage } from "@/features/diagnostics/DiagnosticsPage";
@@ -47,6 +48,7 @@ export function App() {
                     </Route>
                     <Route path="/conversas" element={<ConversasPage />} />
                     <Route path="/conversas/:id" element={<ChatPage />} />
+                    <Route path="/calendario" element={<CalendarioPage />} />
                     <Route path="/meus-numeros" element={<MeusNumerosPage />} />
                     <Route path="/conta" element={<ContaPage />} />
                   </Route>

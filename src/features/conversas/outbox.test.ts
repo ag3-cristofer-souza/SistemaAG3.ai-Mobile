@@ -212,8 +212,19 @@ describe("ações do chat", () => {
       transfer: false,
       returnToQueue: false,
       finish: false,
+      returnToAi: false,
     });
     expect(availableActions({ id: "c", status: "in_attendance", is_group: true }).finish).toBe(
+      false
+    );
+  });
+
+  it("devolve para a IA só o que não está com ela, e nunca grupo", () => {
+    expect(availableActions({ id: "c", status: "in_attendance" }).returnToAi).toBe(true);
+    expect(availableActions({ id: "c", status: "qualification_in_progress" }).returnToAi).toBe(
+      false
+    );
+    expect(availableActions({ id: "c", status: "in_attendance", is_group: true }).returnToAi).toBe(
       false
     );
   });

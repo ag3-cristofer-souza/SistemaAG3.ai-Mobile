@@ -3,9 +3,8 @@
 Versão 3, 06/11/2026. Caminhos de código são relativos aos repositórios `SistemaAG3.ai-Backend-Django` e
 `SistemaAG3.ai-Frontend`.
 
-**Estado:** app no ar em `mobile.ag3system.com`, com login, tempo real e notificação local confirmados em Android. Em andamento:
-Onda 5 (envio real pelo Firebase ainda não confirmado). Onda 6 escrita. Próximas: 7 a 10 (seção 9). Pendentes: D5, D6, áudio como nota
-de voz na Meta e na Wafly, e testes em iPhone.
+**Estado:** app no ar em `mobile.ag3system.com`, com login, tempo real e notificação real pelo Firebase confirmados em Android. Ondas
+7 e 8 escritas, só no app. Próximas: 9 e 10 (seção 9). Pendentes: D5, D6, áudio como nota de voz na Meta e na Wafly, e testes em iPhone.
 
 ## 1. Resumo
 
@@ -122,8 +121,8 @@ O app tem **três frentes**, sempre em tema claro e com a usabilidade do WhatsAp
   entraram e saíram). Só acompanhamento, sem telas de configuração.
 
 **Acesso aos dados:** dados brutos só para gestor e admin. O operador vê indicadores que ajudam no atendimento, só com os números
-dele. Proposta a validar na Onda 8: conversas na fila e limite, maior espera na fila dele, não lidas, finalizadas hoje, tempo médio de
-primeira resposta e próximos compromissos.
+dele. Na Onda 8, aba **Meus números**: fila e limite, em atendimento, em espera, grupos e, no período, atendimentos novos, espera
+média, convertidos, taxa de conversão, a responder e efetividade. Daniel valida o conjunto.
 
 **A aba Agora** não foi citada pelo cliente: fica como primeira seção de Dashboards, porque foi pedido do Daniel.
 
@@ -375,10 +374,10 @@ devolve a mensagem já criada, sem novo envio ao provedor. Não exige migration.
 | **2. Regras do backend** | 8.3 e 8.5 | Teste prova que operador só lê os casos A, B e C por API e WebSocket; painel sem mudança | 1–2 sem. |
 | **3. As duas visões, leitura** | Login, 2FA, troca de empresa, navegação por papel, 8.6, aba Agora, conversas e chat em leitura | Operador e gestor usam a própria visão; número igual ao do painel; sem mensagem perdida depois de trocar de rede ou voltar à tela | 2–3 sem. |
 | **4. Chat: ação** | Envio, áudio, citação, ações, notas | Teste em rede ruim sem duplicidade; áudio chega como nota de voz na Meta e na Wafly | 2 sem. |
-| **5. Notificações** | Avisos automáticos por tipo (escrito, adendo hg) | Com o app fechado, o aviso chega e abre a conversa certa; sair interrompe os avisos | Em andamento: envio real pelo Firebase ainda não confirmado |
+| **5. Notificações** | Avisos automáticos por tipo (adendo hg) | Com o app fechado, o aviso chega e abre a conversa certa; sair interrompe os avisos | Aviso real confirmado no Android pelo Daniel em 06/11 |
 | **6. Tema e navegação** | Tema sempre claro, chat no estilo WhatsApp, abas Atendimento, Calendário, Dashboards e Conta | Sem modo escuro do aparelho; azul só na abertura e no login | Escrita |
-| **7. Atendimento e CRM** | Etapa do funil na conversa, descrição no CRM, ícone de informações do lead com histórico, conversas com a IA | Mudança no app aparece igual no board do painel | 1–2 sem. |
-| **8. Dashboards** | Agora, Comercial, Marketing (UTM e Pixel), PerformaZap, indicadores do operador | Totais iguais aos do painel no mesmo período; operador não acessa dados brutos | 2 sem. |
+| **7. Atendimento e CRM** | Etapa do funil na conversa, descrição no CRM, ícone de informações do lead com histórico, conversas com a IA | Mudança no app aparece igual no board do painel | Escrita (só app) |
+| **8. Dashboards** | Agora, Comercial, Marketing (UTM e Pixel), PerformaZap, indicadores do operador | Totais iguais aos do painel no mesmo período; operador não acessa dados brutos | Escrita (só app) |
 | **9. Calendário** | Ver, criar, editar e excluir, com histórico no lead; aviso no aparelho e no WhatsApp | Cada ação aparece no histórico do lead; aviso chega nos dois canais | 2 sem. |
 | **10. Fechamento** | Preferências de notificação, histórico de envios, botão no painel web, alertas do gestor, revisão de segurança, 8.1 etapa 2, piloto | 2 semanas de uso real sem incidente grave | 1–2 sem. + piloto |
 
@@ -441,5 +440,5 @@ nele. Se falharem, as saídas estão na seção 12.
 | D3 | Validade da sessão no app | Expira após 30 dias sem uso; 2FA em cada aparelho novo, para quem tem 2FA ligado |
 | D4 | Hospedagem do webapp | **Decidido:** Hostinger, no k3s atual (7.1) |
 | D5 | "Atendimento com a IA", no pedido do cliente | **Perguntar ao cliente.** Assumido na Onda 7: ver as conversas com a IA, assumir e devolver. Sugestão de resposta por IA é escopo bem maior |
-| D6 | "Mensagem mais enviada" e "mensagem fixa" | **Perguntar ao cliente** em que tela ele vê isso hoje: o nome não foi encontrado no sistema |
+| D6 | "Mensagem mais enviada" e "mensagem fixa" | **Confirmar com o cliente.** Assumido na Onda 8: `mensagens_iniciais` de `/reports/entries/origem`, a primeira mensagem de cada entrada |
 | D7 | Tema | **Decidido:** sempre claro, sem seguir o modo escuro do aparelho; azul só na abertura e no login |

@@ -6,6 +6,7 @@ export interface ChatActionsAvailable {
   transfer: boolean;
   returnToQueue: boolean;
   finish: boolean;
+  returnToAi: boolean;
 }
 
 /** Mesmas regras do painel. Grupo não é atribuído a ninguém nem segue o fluxo de finalização. */
@@ -18,6 +19,7 @@ export function availableActions(conversation: Conversation): ChatActionsAvailab
     transfer: individual && open,
     returnToQueue: individual && open && Boolean(conversation.assigned_agent_id),
     finish: individual && open,
+    returnToAi: individual && open && conversation.status !== "qualification_in_progress",
   };
 }
 

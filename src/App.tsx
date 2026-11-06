@@ -9,7 +9,8 @@ import { ContaPage } from "@/features/conta/ContaPage";
 import { ChatPage } from "@/features/conversas/ChatPage";
 import { ConversasPage } from "@/features/conversas/ConversasPage";
 import { DiagnosticsPage } from "@/features/diagnostics/DiagnosticsPage";
-import { AgoraPage } from "@/features/gestor/AgoraPage";
+import { DashboardsPage } from "@/features/gestor/DashboardsPage";
+import { MeusNumerosPage } from "@/features/gestor/MeusNumerosPage";
 import { InstallGate } from "@/features/install/InstallGate";
 import { AppShell, RequireManager, RoleHome } from "@/features/shell/AppShell";
 import { RequireWorkspace } from "@/features/workspace/WorkspaceProvider";
@@ -41,11 +42,12 @@ export function App() {
                   <Route element={<AppShell />}>
                     <Route index element={<RoleHome />} />
                     <Route element={<RequireManager />}>
-                      <Route path="/dashboards" element={<AgoraPage />} />
+                      <Route path="/dashboards" element={<DashboardsPage />} />
                       <Route path="/agora" element={<Navigate to="/dashboards" replace />} />
                     </Route>
                     <Route path="/conversas" element={<ConversasPage />} />
                     <Route path="/conversas/:id" element={<ChatPage />} />
+                    <Route path="/meus-numeros" element={<MeusNumerosPage />} />
                     <Route path="/conta" element={<ContaPage />} />
                   </Route>
                 </Route>

@@ -92,6 +92,8 @@ export const api = {
     call({ method: "GET", url, params }, schema),
   post: <T>(url: string, schema: ZodType<T>, body?: unknown, headers?: Record<string, string>) =>
     call({ method: "POST", url, data: body, headers }, schema),
+  put: <T>(url: string, schema: ZodType<T>, body?: unknown) =>
+    call({ method: "PUT", url, data: body }, schema),
   patch: <T>(url: string, schema: ZodType<T>, body?: unknown) =>
     call({ method: "PATCH", url, data: body }, schema),
   /** Rede de celular é lenta para arquivo: o limite padrão de 30 s derrubaria uploads saudáveis. */

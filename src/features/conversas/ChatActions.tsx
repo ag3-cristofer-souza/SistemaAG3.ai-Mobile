@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRightLeft,
+  Bot,
   CheckCircle2,
   MoreVertical,
   NotebookPen,
@@ -19,6 +20,7 @@ import { Button } from "@/ui/button";
 import { ErrorText } from "@/ui/feedback";
 import { Sheet } from "@/ui/sheet";
 import { availableActions } from "./actions";
+import { useLeadCard } from "./useLeadCard";
 
 const errorText = (error: unknown) =>
   error instanceof ApiError ? error.detail : "Não foi possível concluir. Tente de novo.";
@@ -190,20 +192,100 @@ function NotesPanel({ conversationId }: { conversationId: string }) {
   );
 }
 
-type Panel = "menu" | "transfer" | "notes" | "finish" | "queue" | null;
+type Panel = "menu" | "transfer" | "notes" | "finish" | "queue" | "ai" | null;
+
+/** Finalizar é o momento de registrar como terminou: etapa do funil e descrição no CRM, as duas opcionais. */
+function FinishForm({
+  conversation,
+  onDone,
+  onCancel,
+}: {
+  conversation: Conversation;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const stageId = useId();
+  const noteId = useId();
+  const { card, stages, access, move, addNote } = useLeadCard(conversation.lead_id);
+  const [chosen, setChosen] = useState<string | null>(null);
+  const [text, setText] = useState("");
+  const stage = chosen ?? card?.status ?? "";
+  const finish = useMutation({
+    mutationFn: async () => {
+      // O atendimento fecha por último: se a etapa ou a descrição falharem, nada foi encerrado pela metade.
+      if (access === "move" && stage && stage !== card?.status) await move.mutateAsync(stage);
+      if (conversation.lead_id && text.trim()) await addNote.mutateAsync(text.trim());
+      await conversationsApi.finish(conversation.id);
+    },
+    onSuccess: onDone,
+  });
+  return (
+    <form
+      className="space-y-3 p-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        finish.mutate();
+      }}
+    >
+      <p className="text-sm text-muted-foreground">
+        O atendimento será encerrado e sairá da sua fila.
+      </p>
+      {card && access === "move" && (
+        <div className="space-y-1.5">
+          <label htmlFor={stageId} className="block text-sm font-medium">
+            Etapa do funil
+          </label>
+          <select
+            id={stageId}
+            value={stage}
+            onChange={(event) => setChosen(event.target.value)}
+            className="min-h-11 w-full rounded-md border border-input bg-background px-3"
+          >
+            {stages.map((item) => (
+              <option key={item.key} value={item.key}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      {conversation.lead_id && (
+        <div className="space-y-1.5">
+          <label htmlFor={noteId} className="block text-sm font-medium">
+            Descrição no CRM (opcional)
+          </label>
+          <textarea
+            id={noteId}
+            rows={3}
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            className="w-full rounded-md border border-input bg-background p-3"
+          />
+        </div>
+      )}
+      <ErrorText>{finish.isError && errorText(finish.error)}</ErrorText>
+      <Button type="submit" block loading={finish.isPending}>
+        Finalizar
+      </Button>
+      <Button block variant="ghost" onClick={onCancel}>
+        Cancelar
+      </Button>
+    </form>
+  );
+}
 
 const CONFIRM = {
-  finish: {
-    title: "Finalizar atendimento?",
-    text: "O atendimento será encerrado e sairá da sua fila.",
-    action: "Finalizar",
-    run: conversationsApi.finish,
-  },
   queue: {
     title: "Devolver para a fila?",
     text: "A conversa volta para a fila para outro operador assumir.",
     action: "Devolver",
     run: conversationsApi.returnToQueue,
+  },
+  ai: {
+    title: "Devolver para a IA?",
+    text: "A IA volta a responder esta conversa, e ela deixa de estar com você.",
+    action: "Devolver para a IA",
+    run: conversationsApi.returnToAi,
   },
 } as const;
 
@@ -230,7 +312,7 @@ export function ChatActions({ conversation }: { conversation: Conversation }) {
     },
   });
 
-  const confirmation = panel === "finish" || panel === "queue" ? CONFIRM[panel] : null;
+  const confirmation = panel === "ai" || panel === "queue" ? CONFIRM[panel] : null;
   const confirm = useMutation({
     mutationFn: () => (confirmation ? confirmation.run(conversation.id) : Promise.resolve()),
     onSuccess: leave,
@@ -241,7 +323,9 @@ export function ChatActions({ conversation }: { conversation: Conversation }) {
       ? "Transferir atendimento"
       : panel === "notes"
         ? "Anotações internas"
-        : (confirmation?.title ?? "Ações da conversa");
+        : panel === "finish"
+          ? "Finalizar atendimento?"
+          : (confirmation?.title ?? "Ações da conversa");
 
   return (
     <>
@@ -281,6 +365,9 @@ export function ChatActions({ conversation }: { conversation: Conversation }) {
                 onClick={() => setPanel("queue")}
               />
             )}
+            {available.returnToAi && (
+              <ActionRow icon={Bot} label="Devolver para a IA" onClick={() => setPanel("ai")} />
+            )}
             {available.finish && (
               <ActionRow
                 icon={CheckCircle2}
@@ -300,6 +387,9 @@ export function ChatActions({ conversation }: { conversation: Conversation }) {
         )}
         {panel === "transfer" && <TransferForm conversation={conversation} onDone={leave} />}
         {panel === "notes" && <NotesPanel conversationId={conversation.id} />}
+        {panel === "finish" && (
+          <FinishForm conversation={conversation} onDone={leave} onCancel={close} />
+        )}
         {confirmation && (
           <div className="space-y-3 p-4">
             <p className="text-sm text-muted-foreground">{confirmation.text}</p>

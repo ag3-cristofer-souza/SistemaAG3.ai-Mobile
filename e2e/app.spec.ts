@@ -21,6 +21,7 @@ interface MockOptions {
   /** Conversas que o servidor responde com 404, como faz com a de outro operador. */
   denied?: Set<string>;
   live?: Record<string, unknown>;
+  cards?: Array<Record<string, unknown>>;
 }
 
 const CONV = {
@@ -44,6 +45,72 @@ const MSG = {
   message_type: "text",
   body: "Bom dia, preciso de ajuda",
   created_at: "2026-11-06T11:59:00Z",
+};
+
+const OVERVIEW = {
+  commercial: {
+    kpis: { leadsPeriod: 120, conversionsMonth: 12 },
+    executiveSummary: {
+      uniqueContacts: 100,
+      interestedOrQualified: 30,
+      conversionsInPeriod: 12,
+      conversionRatePercent: 10,
+    },
+    previous: { leads: 100, conversions: 10 },
+    leadsData: [
+      { date: "2026-11-05", leads: 50 },
+      { date: "2026-11-06", leads: 70 },
+    ],
+    teamPerformance: [{ userId: "o2", name: "Olga Online", conversions: 7 }],
+  },
+  attendance: { new_attendances: 40, avg_waiting_time_seconds: 300, transfers: 3 },
+  zap: {
+    summary: {
+      contatos: 80,
+      contatei: 50,
+      efetivas: 25,
+      efetividade: 50,
+      aResponder: 6,
+      semRetorno: 25,
+      contas: 2,
+      mensagensEnviadas: 300,
+      mensagensRecebidas: 200,
+    },
+    rows: [{ name: "Canal Vendas", contatos: 80, efetivas: 25, efetividade: 50, aResponder: 6 }],
+  },
+};
+
+const MARKETING = {
+  resumo: {
+    leads: 90,
+    leads_novos: 70,
+    qualificados: 20,
+    ganhos: 9,
+    receita: 4500,
+    taxa_ganho: 10,
+    gasto: 1000,
+    cpl: 11.11,
+    roas: 4.5,
+    sem_origem: 5,
+    plataforma: { impressoes: 9000, cliques: 400, conversas: 100, leads: 95 },
+  },
+  canais: [
+    {
+      canal: "Meta Ads",
+      leads: 60,
+      ganhos: 6,
+      receita: 3000,
+      campanhas: [{ nome: "Campanha Black", leads: 40, ganhos: 4, receita: 2000 }],
+    },
+  ],
+  fontes: [{ fonte: "instagram", leads: 33, ganhos: 2, receita: 500 }],
+  moeda: "BRL",
+  tem_gasto: true,
+};
+
+const ORIGEM = {
+  kpis: { entradas: 120, novos: 90, ganhos: 9, perdidos: 15, pendentes: 4 },
+  mensagens_iniciais: [{ mensagem: "Quero saber mais", entradas: 44 }],
 };
 
 const LIVE = {
@@ -93,6 +160,7 @@ async function mockBackend(page: Page, options: MockOptions = {}) {
   ];
   let savedCount = 0;
   const notes: unknown[] = [];
+  const crmNotes: unknown[] = [];
   const json = (body: unknown, status = 200) => ({
     status,
     contentType: "application/json",
@@ -139,6 +207,80 @@ async function mockBackend(page: Page, options: MockOptions = {}) {
     }
     if (path === "/users/workspaces") return route.fulfill(json({ data: workspaces }));
     if (path === "/auth/logout") return route.fulfill(json({ success: true }));
+    if (path === "/pipelines") {
+      return route.fulfill(json({ data: [{ id: "p1", name: "Vendas", is_default: true }] }));
+    }
+    if (path === "/pipelines/stages/all") return route.fulfill(json({ data: [] }));
+    if (path === "/produtos/dynamic-statuses") return route.fulfill(json({ data: [] }));
+    if (path === "/produtos") return route.fulfill(json({ data: options.cards ?? [] }));
+    const card = path.match(/^\/produtos\/([^/]+)(\/assume)?$/);
+    if (card) {
+      const found = (options.cards ?? []).find((item) => item.id === card[1]);
+      if (found && card[2]) Object.assign(found, { assigned_to: "u1" });
+      if (found && request.method() === "PUT") Object.assign(found, request.postDataJSON());
+      return route.fulfill(json({ data: found ?? {} }));
+    }
+    if (path === "/notes") {
+      if (request.method() === "POST") {
+        const note = {
+          id: `crm-${crmNotes.length}`,
+          content: (request.postDataJSON() as { content: string }).content,
+          created_at: "2026-11-06T12:00:00Z",
+        };
+        crmNotes.push(note);
+        return route.fulfill(json({ data: note }));
+      }
+      return route.fulfill(json({ data: crmNotes }));
+    }
+    if (path === "/leads/lead-1") {
+      return route.fulfill(
+        json({
+          data: {
+            id: "lead-1",
+            name: "Maria Cliente",
+            phone: "5511999990000",
+            email: "maria@cliente.test",
+            created_at: "2026-10-01T12:00:00Z",
+          },
+        })
+      );
+    }
+    if (path === "/leads/lead-1/origem") {
+      return route.fulfill(json({ data: { resumo: { primeira: { label: "Meta Ads" } } } }));
+    }
+    if (path === "/leads/lead-1/history") {
+      return route.fulfill(
+        json({
+          data: [
+            {
+              id: "h1",
+              kind: "card_etapa",
+              created_at: "2026-10-02T12:00:00Z",
+              from_label: "Pendente",
+              to_label: "Em Atendimento",
+              description: null,
+              actor_name: "Pessoa Teste",
+            },
+          ],
+        })
+      );
+    }
+    if (path === "/dashboard/overview") return route.fulfill(json({ data: OVERVIEW }));
+    if (path === "/reports/marketing/visao") {
+      if (role === "operator") return route.fulfill(json({ detail: "Permissao negada" }, 403));
+      return route.fulfill(json({ data: MARKETING }));
+    }
+    if (path === "/reports/entries/origem") return route.fulfill(json({ data: ORIGEM }));
+    if (path === "/marketing/conversions/events") {
+      return route.fulfill(
+        json({
+          data: [
+            { deliveries: [{ platform: "meta", status: "sent" }] },
+            { deliveries: [{ platform: "meta", status: "failed" }] },
+          ],
+        })
+      );
+    }
     if (path === "/dashboard/live") return route.fulfill(json({ data: options.live ?? LIVE }));
     if (path === "/conversations/counts") {
       return route.fulfill(
@@ -612,6 +754,135 @@ test("gravar áudio envia um ogg como áudio", async ({ page }) => {
   expect(sends[0]).toMatchObject({ message_type: "audio", message: "" });
 });
 
+const COM_LEAD = { ...CONV, lead_id: "lead-1" };
+const CARD = {
+  id: "card-1",
+  lead_id: "lead-1",
+  pipeline_id: "p1",
+  status: "in_progress",
+  assigned_to: "u1",
+  closed_at: null,
+};
+
+test("muda a etapa do funil e salva a descrição no CRM pela conversa", async ({ page }) => {
+  await mockBackend(page, { conversations: [COM_LEAD], messages: [MSG], cards: [{ ...CARD }] });
+  await openChat(page, COM_LEAD);
+  const bar = page.getByRole("button", { name: /Funil:/ });
+  await expect(bar).toContainText("Em Atendimento");
+  await bar.click();
+  const put = page.waitForRequest(
+    (r) => r.url().endsWith("/produtos/card-1") && r.method() === "PUT"
+  );
+  await page.getByRole("radio", { name: "Convertido" }).check();
+  expect((await put).postDataJSON()).toEqual({ status: "converted" });
+  await expect(page.getByRole("radio", { name: "Convertido" })).toBeChecked();
+
+  const note = page.waitForRequest((r) => r.url().endsWith("/notes") && r.method() === "POST");
+  await page.getByLabel("Descrição no CRM").fill("Fechou o plano anual");
+  await page.getByRole("button", { name: "Salvar descrição" }).click();
+  expect((await note).postDataJSON()).toEqual({
+    lead_id: "lead-1",
+    content: "Fechou o plano anual",
+  });
+  await expect(page.getByText("Descrição salva no lead.")).toBeVisible();
+  await page.getByRole("button", { name: "Fechar" }).click();
+  await expect(bar).toContainText("Convertido");
+});
+
+test("card sem dono precisa ser assumido antes de mudar a etapa", async ({ page }) => {
+  await mockBackend(page, {
+    conversations: [COM_LEAD],
+    messages: [MSG],
+    cards: [{ ...CARD, assigned_to: null, status: "pending" }],
+  });
+  await openChat(page, COM_LEAD);
+  await page.getByRole("button", { name: /Funil:/ }).click();
+  await expect(page.getByRole("radio", { name: "Convertido" })).toBeDisabled();
+  await page.getByRole("button", { name: "Assumir card" }).click();
+  await expect(page.getByRole("radio", { name: "Convertido" })).toBeEnabled();
+});
+
+test("card de outro operador mostra a etapa sem deixar mudar", async ({ page }) => {
+  await mockBackend(page, {
+    conversations: [COM_LEAD],
+    messages: [MSG],
+    cards: [{ ...CARD, assigned_to: "u2", assignedToName: "Olga" }],
+  });
+  await openChat(page, COM_LEAD);
+  await page.getByRole("button", { name: /Funil:/ }).click();
+  await expect(page.getByText("Este card é de Olga")).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Convertido" })).toBeDisabled();
+});
+
+test("o ponto de exclamação mostra quando o lead entrou, a origem e o histórico", async ({
+  page,
+}) => {
+  await mockBackend(page, { conversations: [COM_LEAD], messages: [MSG], cards: [{ ...CARD }] });
+  await openChat(page, COM_LEAD);
+  await page.getByRole("button", { name: "Informações do lead" }).click();
+  const painel = page.getByRole("dialog", { name: "Informações do lead" });
+  await expect(painel.getByText("maria@cliente.test")).toBeVisible();
+  await expect(painel.getByText("Entrou em")).toBeVisible();
+  await expect(painel.getByText("Meta Ads")).toBeVisible();
+  await expect(painel.getByText("Etapa alterada")).toBeVisible();
+  await expect(painel.getByText("Pendente → Em Atendimento")).toBeVisible();
+});
+
+test("finalizar registra a etapa e a descrição antes de encerrar", async ({ page }) => {
+  await mockBackend(page, { conversations: [COM_LEAD], messages: [MSG], cards: [{ ...CARD }] });
+  const ordem: string[] = [];
+  page.on("request", (r) => {
+    const path = new URL(r.url()).pathname;
+    if (r.method() === "PUT" && path === "/produtos/card-1") ordem.push("etapa");
+    if (r.method() === "POST" && path === "/notes") ordem.push("descricao");
+    if (r.method() === "POST" && path.endsWith("/finish")) ordem.push("finalizar");
+  });
+  await openChat(page, COM_LEAD);
+  await page.getByRole("button", { name: "Mais ações" }).click();
+  await page.getByRole("button", { name: "Finalizar atendimento" }).click();
+  await page.getByLabel("Etapa do funil").selectOption("converted");
+  await page.getByLabel("Descrição no CRM (opcional)").fill("Cliente fechou");
+  await page.getByRole("button", { name: "Finalizar", exact: true }).click();
+  await expect(page).toHaveURL(/\/conversas$/);
+  expect(ordem).toEqual(["etapa", "descricao", "finalizar"]);
+});
+
+test("se a etapa falhar, o atendimento não é encerrado", async ({ page }) => {
+  await mockBackend(page, { conversations: [COM_LEAD], messages: [MSG], cards: [{ ...CARD }] });
+  await page.route(`${API}/produtos/card-1`, (route) =>
+    route.request().method() === "PUT"
+      ? route.fulfill({
+          status: 400,
+          contentType: "application/json",
+          headers: { "access-control-allow-origin": "*" },
+          body: JSON.stringify({ detail: "Etapa inválida." }),
+        })
+      : route.fallback()
+  );
+  let finished = false;
+  page.on("request", (r) => {
+    if (r.url().endsWith("/finish")) finished = true;
+  });
+  await openChat(page, COM_LEAD);
+  await page.getByRole("button", { name: "Mais ações" }).click();
+  await page.getByRole("button", { name: "Finalizar atendimento" }).click();
+  await page.getByLabel("Etapa do funil").selectOption("converted");
+  await page.getByRole("button", { name: "Finalizar", exact: true }).click();
+  await expect(page.getByRole("alert")).toHaveText("Etapa inválida.");
+  expect(finished).toBe(false);
+});
+
+test("devolve a conversa para a IA com confirmação", async ({ page }) => {
+  await mockBackend(page, { conversations: [CONV], messages: [MSG] });
+  await openChat(page);
+  await page.getByRole("button", { name: "Mais ações" }).click();
+  await page.getByRole("button", { name: "Devolver para a IA" }).click();
+  const request = page.waitForRequest((r) => r.url().endsWith("/conv-1/return-to-ai"));
+  await page.getByRole("button", { name: "Devolver para a IA" }).click();
+  await request;
+  await expect(page).toHaveURL(/\/conversas$/);
+});
+
 test("ações: espera, anotação, transferência com motivo e finalizar com confirmação", async ({
   page,
 }) => {
@@ -733,6 +1004,59 @@ test("ao perder o acesso com o chat aberto, a conversa some da tela", async ({ p
   sockets.at(-1)!.push({ type: "unfocused", conversation_id: "conv-1", reason: "revoked" });
   await expect(page.getByRole("heading", { name: "Conversa indisponível" })).toBeVisible();
   await expect(page.getByText("Bom dia, preciso de ajuda")).toHaveCount(0);
+});
+
+test("dashboards mostram comercial, marketing e PerformaZap, com o período na API", async ({
+  page,
+}) => {
+  await mockBackend(page, { role: "manager" });
+  const pedidos: URL[] = [];
+  page.on("request", (r) => {
+    const url = new URL(r.url());
+    if (url.pathname === "/reports/marketing/visao") pedidos.push(url);
+  });
+  await page.addInitScript(() => {
+    localStorage.setItem("ag3.token", "tok");
+    localStorage.setItem("ag3.install.skip", "1");
+  });
+  await page.goto("/dashboards");
+  await expect(page.getByText("Fila sem dono")).toBeVisible();
+
+  await page.getByRole("tab", { name: "Comercial" }).click();
+  await expect(page.getByText("Leads que entraram")).toBeVisible();
+  await expect(page.getByText("+20% sobre o período anterior").first()).toBeVisible();
+  await expect(page.getByText("Perdidos")).toBeVisible();
+  await expect(page.getByText("15", { exact: true })).toBeVisible();
+  await expect(page.getByRole("listitem").filter({ hasText: "Olga Online" })).toContainText("7");
+
+  await page.getByRole("tab", { name: "Marketing" }).click();
+  await expect(page.getByText("Campanha Black")).toBeVisible();
+  await expect(page.getByText("instagram")).toBeVisible();
+  await expect(page.getByText("Quero saber mais")).toBeVisible();
+  await expect(page.getByText("Dos últimos 2 eventos: 1 enviados e 1 com falha.")).toBeVisible();
+
+  await page.getByRole("button", { name: "30 dias" }).click();
+  await expect(page).toHaveURL(/periodo=30d/);
+  await expect.poll(() => pedidos.length).toBeGreaterThan(1);
+  expect(pedidos.at(-1)!.searchParams.get("start_date")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+  await page.getByRole("tab", { name: "PerformaZap" }).click();
+  await expect(page.getByText("Canal Vendas")).toBeVisible();
+  await expect(page.getByText("6 a responder", { exact: false })).toBeVisible();
+});
+
+test("operador vê os próprios números e não entra em Dashboards", async ({ page }) => {
+  await mockBackend(page, { role: "operator" });
+  await page.addInitScript(() => {
+    localStorage.setItem("ag3.token", "tok");
+    localStorage.setItem("ag3.install.skip", "1");
+  });
+  await page.goto("/meus-numeros");
+  await expect(page.getByText("Na sua fila")).toBeVisible();
+  await expect(page.getByText("Limite: 5")).toBeVisible();
+  await expect(page.getByText("Atendimentos novos")).toBeVisible();
+  await page.goto("/dashboards");
+  await expect(page).toHaveURL(/\/conversas$/);
 });
 
 test("login com código em duas etapas", async ({ page }) => {

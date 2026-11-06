@@ -34,6 +34,7 @@ import {
 } from "./messages";
 import { ChatActions } from "./ChatActions";
 import { Composer } from "./Composer";
+import { FunnelBar, LeadInfoButton } from "./LeadPanels";
 import { clientIdOf, isLocalMessage, outbox, pendingBubbles, toLocalMessage } from "./outbox";
 import { conversationName, STATUS_LABEL } from "./tabs";
 
@@ -334,8 +335,12 @@ export function ChatPage() {
         subtitle={subtitle}
         photo={conversation?.participant_photo_storage_url}
       >
+        {conversation?.lead_id && <LeadInfoButton leadId={conversation.lead_id} />}
         {conversation && <ChatActions conversation={conversation} />}
       </ChatHeader>
+      {conversation?.lead_id && !conversation.is_group && (
+        <FunnelBar leadId={conversation.lead_id} />
+      )}
       <MessageList key={id} conversationId={id} onReply={setReplyTo} sentCount={sentCount} />
       {conversation && (
         <div className="shrink-0 border-t bg-card pb-[env(safe-area-inset-bottom)]">

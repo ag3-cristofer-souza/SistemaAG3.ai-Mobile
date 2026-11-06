@@ -143,6 +143,7 @@ export const conversationsApi = {
   resume: (id: string) => api.post(`/conversations/${id}/resume`, z.unknown()),
   finish: (id: string) => api.post(`/conversations/${id}/finish`, z.unknown()),
   returnToQueue: (id: string) => api.post(`/conversations/${id}/return-to-queue`, z.unknown()),
+  returnToAi: (id: string) => api.post(`/conversations/${id}/return-to-ai`, z.unknown()),
   notes: async (id: string): Promise<Note[]> =>
     (await api.get(`/conversations/${id}/notes`, notesSchema)).data,
   addNote: async (id: string, content: string): Promise<Note> =>

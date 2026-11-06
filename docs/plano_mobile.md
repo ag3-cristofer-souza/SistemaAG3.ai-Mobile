@@ -34,7 +34,7 @@ Versão 3, 06/11/2026. Caminhos de código são relativos aos repositórios `Sis
 | Backend | Todo o consumo aponta para a produção atual em Django |
 | Domínio | `mobile.ag3system.com`, a ser criado pelo Daniel durante o projeto |
 | Identidade | Globo, marca AG3.AI e abertura da landing (`LP-AG3`); fundo azul-marinho `#12224e`, a cor `--chip` do site, e ícones em fundo branco, como no site |
-| Hospedagem do webapp | Hostinger ou Railway, a definir pelo Daniel. O plano funciona nas duas (7.1) |
+| Hospedagem do webapp | Hostinger, no k3s atual, em `mobile.ag3system.com` (7.1) |
 
 ## 3. O que já dá para aproveitar
 
@@ -195,8 +195,9 @@ no repositório do app.
 **Recomendação: Hostinger.** Com uma API única, a Railway não traz ganho de disponibilidade e adiciona mais um lugar para
 operar. Nas duas, `sw.js` precisa ir sem cache na borda.
 
-**Decisão do Daniel (06/11): Railway**, com `mobile.ag3system.com` em nuvem laranja na Cloudflare, que exige o modo SSL **Full**.
-A imagem foi conferida localmente com `PORT=8080`. Variáveis: `PORT`, `VITE_API_URL` e `VITE_REALTIME_URL`.
+**Decisão do Daniel (06/11): Hostinger, no k3s atual**, depois de avaliar a Railway. `mobile.ag3system.com` aponta para a VPS pela
+Cloudflare (proxied). Esteira: `.github/workflows/ci.yml` publica a imagem `geon-mobile` e implanta a cada push no `main`. Subida
+inicial: `docs/runbook_vps.md`, A7.17, no repositório do backend.
 
 **Endereços:** API em `https://api.ag3system.com` e WebSocket em `wss://api.ag3system.com/ws/realtime`, como em
 `k8s/base/front.yaml` (confirmado pelo Daniel).
@@ -414,4 +415,4 @@ nele. Se falharem, as saídas estão na seção 12.
 | D1 | Aplicar a regra de 8.3 também no painel web | Sim, em etapa própria depois do piloto: fecha a API e o WebSocket, mas o link direto para conversa de outro deixa de abrir |
 | D2 | Texto da notificação | Nome do contato + "Nova mensagem", sem o conteúdo |
 | D3 | Validade da sessão no app | Expira após 30 dias sem uso; 2FA em cada aparelho novo, para quem tem 2FA ligado |
-| D4 | Hospedagem do webapp | Hostinger, no k3s atual (7.1) |
+| D4 | Hospedagem do webapp | **Decidido:** Hostinger, no k3s atual (7.1) |

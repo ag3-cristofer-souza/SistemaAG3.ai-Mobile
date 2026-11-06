@@ -1,4 +1,4 @@
-# ${PORT}: a imagem oficial do nginx substitui na subida. Padrão 80; a Railway define a porta dela.
+# ${PORT}: a imagem oficial do nginx substitui na subida. Padrão 80.
 server {
     listen ${PORT};
     server_name _;

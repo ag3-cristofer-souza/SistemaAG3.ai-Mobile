@@ -1,13 +1,20 @@
-# Verificações a cada push. A publicação da imagem entra quando a hospedagem estiver definida (plano §7.1).
+# Verificações a cada push e pull request; no `main`, publica a imagem e implanta no cluster (plano §7.1). Mesmo desenho do
+# `deploy-k8s.yml` do painel, independente do backend: corrigir uma tela não exige rollout de API.
+# Subida inicial e o que precisa existir no servidor: docs/runbook_vps.md, A7.17, no repositório do backend.
 name: ci
 
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ghcr.io/${{ github.repository_owner }}/geon-mobile
 
 jobs:
   verificar:
@@ -20,13 +27,94 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
-      - name: Dependências de produção com vulnerabilidade
-        run: npm audit --omit=dev --audit-level=high
       - name: Testes de ponta a ponta
+        # Chrome de verdade: o Chromium sem interface do Playwright não tem notificações, e os testes de diagnóstico falhariam.
         run: |
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chrome
           npm run test:e2e
-        env:
-          E2E_CHANNEL: chromium
       - name: A imagem compila
         run: docker build -t ag3-mobile:ci .
+
+  # Se reprovar, nada é publicado nem implantado.
+  seguranca:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }                  # gitleaks olha o histórico inteiro
+      - name: Segredos no repositório (gitleaks)
+        run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.21.2 detect --source /repo --redact --no-banner
+      - name: Análise estática (Semgrep)
+        run: >-
+          docker run --rm -v "$PWD:/src" semgrep/semgrep:1.95.0 semgrep scan --config p/react --config p/typescript
+          --config p/secrets --metrics=off --error --exclude node_modules --exclude dist src
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci --no-audit --no-fund
+      - name: Dependências de produção com vulnerabilidade (npm audit)
+        run: npm audit --omit=dev --audit-level=high
+
+  publicar:
+    needs: [verificar, seguranca]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions: { contents: read, packages: write }
+    outputs:
+      tag: sha-${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:sha-${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          pull: true        # sempre o nginx:alpine mais recente
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # refaz o `apk upgrade` a cada execução (ver Dockerfile); o resto continua vindo do cache
+          build-args: |
+            SECURITY_REFRESH=${{ github.run_id }}
+      - name: Varredura de vulnerabilidades da imagem (Trivy)
+        # Mesma ação e versão do backend e do painel, fixada por SHA. Reprova HIGH/CRITICAL que já têm correção.
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25   # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}:sha-${{ github.sha }}
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+  # SSH com COMANDO FIXO (a API do Kubernetes não é pública): a chave DEPLOY_SSH_KEY só consegue executar
+  # `mobile sha-<commit>` e afins no servidor. Ele troca a imagem, acompanha o rollout e desfaz sozinho se falhar.
+  # Servidor: deploy/vps/10_deploy_ci.sh no repositório do backend.
+  implantar:
+    needs: publicar
+    runs-on: ubuntu-latest
+    concurrency: { group: deploy-mobile, cancel-in-progress: false }
+    steps:
+      - name: Implantar no cluster
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          # chave do servidor fixada: sem ela o ssh recusa (proteção contra servidor falso)
+          echo "2.24.107.37 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGAKNyObcj54TxoybIJBJjZFJYFhmxSGHqZGSwEw5Hig" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            geon-deploy@2.24.107.37 "mobile ${{ needs.publicar.outputs.tag }}"
+      - name: Conferir o app e os cabeçalhos de segurança no ar
+        run: |
+          sleep 20
+          h=$(curl -sSI https://mobile.ag3system.com/)
+          for cab in "x-content-type-options: nosniff" "x-frame-options: DENY" "strict-transport-security" "content-security-policy"; do
+            grep -qi "$cab" <<<"$h" || { echo "faltando no mobile.: $cab"; exit 1; }
+          done
+          curl -sSf https://mobile.ag3system.com/runtime-config.js | grep -q "https://api.ag3system.com" \
+            || { echo "runtime-config.js não aponta para a API de produção"; exit 1; }
+          echo "app no ar e cabeçalhos ok"

@@ -50,7 +50,8 @@ docker run -p 8080:80 \
   ag3-mobile
 ```
 
-Hospedagens que definem a porta, como a Railway, usam a variável `PORT`.
+Em produção, o app roda no cluster da Hostinger: cada push no `main` passa pelas verificações e implanta sozinho
+(`.github/workflows/ci.yml`). Subida inicial: `docs/runbook_vps.md`, A7.17, no repositório do backend.
 
 ## Notificações
 

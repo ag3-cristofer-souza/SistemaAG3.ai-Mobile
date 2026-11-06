@@ -816,7 +816,7 @@ test("muda a etapa do funil e salva a descrição no CRM pela conversa", async (
   const put = page.waitForRequest(
     (r) => r.url().endsWith("/produtos/card-1") && r.method() === "PUT"
   );
-  await page.getByRole("radio", { name: "Convertido" }).check();
+  await page.getByRole("radio", { name: "Convertido" }).click();
   expect((await put).postDataJSON()).toEqual({ status: "converted" });
   await expect(page.getByRole("radio", { name: "Convertido" })).toBeChecked();
 

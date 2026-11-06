@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tema claro igual ao do painel; tema escuro no azul-marinho da marca (#0d1426). Tamanho base de 100%: o painel usa 83%
+   para ser denso no desktop; aqui o toque e a leitura vêm primeiro. */
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 220 13% 13%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 13% 13%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 100% 97%;
+    --secondary-foreground: 217 91% 45%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 220 9% 40%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 71% 30%;
+    --success-foreground: 0 0% 100%;
+    --warning: 30 90% 35%;
+    --warning-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 85%;
+    --ring: 217 91% 60%;
+    --radius: 0.75rem;
+    color-scheme: light;
+  }
+
+  .dark {
+    --background: 222 49% 10%;
+    --foreground: 0 0% 98%;
+    --card: 222 40% 14%;
+    --card-foreground: 0 0% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 30% 20%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 222 30% 20%;
+    --muted-foreground: 220 15% 72%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 71% 55%;
+    --success-foreground: 0 0% 0%;
+    --warning: 38 92% 60%;
+    --warning-foreground: 0 0% 0%;
+    --border: 222 25% 22%;
+    --input: 222 25% 30%;
+    --ring: 217 91% 70%;
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-border;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    overscroll-behavior-y: none;
+  }
+
+  /* Abaixo de 16px, o iPhone dá zoom ao focar o campo. */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}

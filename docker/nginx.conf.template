@@ -1,0 +1,38 @@
+# ${PORT}: a imagem oficial do nginx substitui na subida. Padrão 80; a Railway define a porta dela.
+server {
+    listen ${PORT};
+    server_name _;
+    server_tokens off;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript application/manifest+json application/wasm image/svg+xml;
+
+    # Arquivos sem hash precisam sair sempre atualizados: é por eles que o app descobre uma versão nova.
+    location = /manifest.webmanifest {
+        include /etc/nginx/snippets/security-headers.conf;
+        add_header Cache-Control "no-cache" always;
+        types { }
+        default_type application/manifest+json;
+    }
+
+    location ~ ^/(index\.html|sw\.js|runtime-config\.js)$ {
+        include /etc/nginx/snippets/security-headers.conf;
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        try_files $uri =404;
+    }
+
+    # Nome com hash: nunca muda.
+    location /assets/ {
+        include /etc/nginx/snippets/security-headers.conf;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        try_files $uri =404;
+    }
+
+    location / {
+        include /etc/nginx/snippets/security-headers.conf;
+        add_header Cache-Control "no-cache" always;
+        try_files $uri /index.html;
+    }
+}

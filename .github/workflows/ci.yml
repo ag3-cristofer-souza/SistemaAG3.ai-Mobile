@@ -1,0 +1,32 @@
+# Verificações a cada push. A publicação da imagem entra quando a hospedagem estiver definida (plano §7.1).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - name: Dependências de produção com vulnerabilidade
+        run: npm audit --omit=dev --audit-level=high
+      - name: Testes de ponta a ponta
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+        env:
+          E2E_CHANNEL: chromium
+      - name: A imagem compila
+        run: docker build -t ag3-mobile:ci .

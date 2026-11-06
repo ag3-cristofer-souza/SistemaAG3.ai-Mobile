@@ -4,9 +4,7 @@ import { registerSW } from "virtual:pwa-register";
 import { App } from "./App";
 import "./index.css";
 import { captureInstallEvents } from "./lib/pwa";
-import { applySystemTheme } from "./lib/theme";
 
-applySystemTheme();
 captureInstallEvents();
 registerSW({ immediate: true });
 

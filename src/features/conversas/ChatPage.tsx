@@ -223,7 +223,9 @@ function MessageList({ conversationId, onReply, sentCount }: MessageListProps) {
 
   if (messagesQuery.isPending) {
     return (
-      <p className="min-h-0 flex-1 p-6 text-center text-sm text-muted-foreground">Carregando…</p>
+      <p className="min-h-0 flex-1 bg-chat p-6 text-center text-sm text-muted-foreground">
+        Carregando…
+      </p>
     );
   }
   if (messagesQuery.isError && !items.length) {
@@ -239,14 +241,14 @@ function MessageList({ conversationId, onReply, sentCount }: MessageListProps) {
   }
   if (!items.length) {
     return (
-      <p className="min-h-0 flex-1 p-6 text-center text-sm text-muted-foreground">
+      <p className="min-h-0 flex-1 bg-chat p-6 text-center text-sm text-muted-foreground">
         Nenhuma mensagem ainda.
       </p>
     );
   }
 
   return (
-    <div className="relative min-h-0 flex-1" role="log" aria-label="Mensagens">
+    <div className="relative min-h-0 flex-1 bg-chat" role="log" aria-label="Mensagens">
       <Virtuoso
         ref={list}
         className="h-full"

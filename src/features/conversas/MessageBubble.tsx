@@ -109,12 +109,12 @@ export function MessageBubble({ message, onReply, local }: MessageBubbleProps) {
       <div
         className={cn(
           "max-w-[80%] space-y-1 rounded-lg px-3 py-2 text-sm",
-          outgoing ? "bg-secondary text-foreground" : "border bg-card"
+          outgoing ? "bg-bubble-out text-foreground shadow-sm" : "bg-card shadow-sm"
         )}
       >
         {sender && <p className="text-xs font-medium text-muted-foreground">{sender}</p>}
         {quote && (
-          <blockquote className="rounded border-l-2 border-primary bg-background/60 px-2 py-1 text-xs">
+          <blockquote className="rounded border-l-2 border-primary bg-black/5 px-2 py-1 text-xs">
             <p className="font-medium">{quote.author}</p>
             <p className="line-clamp-2 text-muted-foreground">{quote.text}</p>
           </blockquote>

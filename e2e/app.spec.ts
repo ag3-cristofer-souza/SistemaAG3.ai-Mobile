@@ -309,7 +309,7 @@ test("senha errada mostra o erro do servidor e continua no login", async ({ page
   await expect(page.getByRole("alert")).toHaveText("E-mail ou senha inválidos.");
 });
 
-test("operador entra em Conversas, sem a aba Agora, e assina a empresa em tempo real", async ({
+test("operador entra no Atendimento, sem Dashboards, e assina a empresa em tempo real", async ({
   page,
 }) => {
   const sockets = await mockBackend(page, { role: "operator" });
@@ -317,7 +317,7 @@ test("operador entra em Conversas, sem a aba Agora, e assina a empresa em tempo 
   await login(page);
   await expect(page).toHaveURL(/\/conversas$/);
   await expect(page.getByRole("heading", { name: "Empresa Um" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Agora" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Dashboards" })).toHaveCount(0);
   await expect(page.getByText("Ao vivo")).toBeVisible();
   expect(sockets.at(-1)?.sent[0]).toMatchObject({ type: "subscribe", company_id: "c1" });
 
@@ -325,20 +325,39 @@ test("operador entra em Conversas, sem a aba Agora, e assina a empresa em tempo 
   await expect(page).toHaveURL(/\/conversas$/);
 });
 
-test("gestor entra em Agora e vê as três abas", async ({ page }) => {
+test("gestor entra no Atendimento e vê as três abas", async ({ page }) => {
   await mockBackend(page, { role: "manager" });
   await passInstallGate(page);
   await login(page);
-  await expect(page).toHaveURL(/\/agora$/);
-  for (const name of ["Agora", "Conversas", "Conta"]) {
+  await expect(page).toHaveURL(/\/conversas$/);
+  for (const name of ["Atendimento", "Dashboards", "Conta"]) {
     await expect(page.getByRole("link", { name })).toBeVisible();
   }
 });
 
-test("gestor vê os números do momento em Agora", async ({ page }) => {
+test("o app fica claro mesmo com o aparelho em modo escuro, e o login continua azul", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await mockBackend(page, { role: "manager" });
+  await passInstallGate(page);
+  await expect(page.locator(".dark")).toBeVisible();
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#12224e");
+  await login(page);
+  await expect(page).toHaveURL(/\/conversas$/);
+  await expect(page.locator(".dark")).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.classList.contains("dark"))).toBe(
+    false
+  );
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#fafcff");
+});
+
+test("gestor vê os números do momento em Dashboards", async ({ page }) => {
   await mockBackend(page, { role: "manager" });
   await passInstallGate(page);
   await login(page);
+  await page.getByRole("link", { name: "Dashboards" }).click();
+  await expect(page).toHaveURL(/\/dashboards$/);
   await expect(page.getByText("Fila sem dono")).toBeVisible();
   await expect(page.getByText("Maior espera: 12 min")).toBeVisible();
   await expect(page.getByText("Canal Vendas")).toBeVisible();
@@ -423,7 +442,7 @@ test("chat abre com histórico, marca como lido e recebe mensagem nova da conver
   await expect(page).toHaveURL(/\/conversas\/conv-1$/);
   await expect(page.getByRole("heading", { name: "Maria Cliente" })).toBeVisible();
   await expect(page.getByText("Bom dia, preciso de ajuda")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Conversas" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Atendimento" })).toHaveCount(0);
   await read;
 
   const socket = sockets.at(-1)!;

@@ -27,6 +27,8 @@ export default {
         muted: pair("muted"),
         accent: pair("accent"),
         card: pair("card"),
+        chat: token("chat"),
+        "bubble-out": token("bubble-out"),
       },
       borderRadius: {
         lg: "var(--radius)",

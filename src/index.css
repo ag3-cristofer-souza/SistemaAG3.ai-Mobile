@@ -2,20 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Tema claro igual ao do painel; tema escuro no azul-marinho do site (#12224e, `--chip` de LP-AG3). Tamanho base de 100%: o painel usa 83%
+/* App sempre claro, igual ao painel (decisão D7). `.dark` existe só nas telas da marca, abertura e login, no azul-marinho do site
+   (#12224e, `--chip` de LP-AG3). Tamanho base de 100%: o painel usa 83%
    para ser denso no desktop; aqui o toque e a leitura vêm primeiro. */
 @layer base {
   :root {
-    --background: 210 40% 98%;
+    --background: 214 65% 96%;
     --foreground: 220 13% 13%;
-    --card: 0 0% 100%;
+    --card: 214 100% 99%;
     --card-foreground: 220 13% 13%;
     --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 214 100% 97%;
+    --secondary: 214 100% 94%;
     --secondary-foreground: 217 91% 45%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 220 9% 40%;
+    --muted: 214 55% 93%;
+    --muted-foreground: 220 12% 38%;
     --accent: 217 91% 60%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 45%;
@@ -24,10 +25,13 @@
     --success-foreground: 0 0% 100%;
     --warning: 30 90% 35%;
     --warning-foreground: 0 0% 100%;
-    --border: 214 32% 91%;
-    --input: 214 32% 85%;
+    --border: 214 45% 87%;
+    --input: 214 40% 79%;
     --ring: 217 91% 60%;
     --radius: 0.75rem;
+    /* Chat no estilo do WhatsApp, com fundo no tom azulado do app e mensagem enviada em verde claro. */
+    --chat: 214 38% 91%;
+    --bubble-out: 110 62% 90%;
     color-scheme: light;
   }
 

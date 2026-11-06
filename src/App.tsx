@@ -41,7 +41,8 @@ export function App() {
                   <Route element={<AppShell />}>
                     <Route index element={<RoleHome />} />
                     <Route element={<RequireManager />}>
-                      <Route path="/agora" element={<AgoraPage />} />
+                      <Route path="/dashboards" element={<AgoraPage />} />
+                      <Route path="/agora" element={<Navigate to="/dashboards" replace />} />
                     </Route>
                     <Route path="/conversas" element={<ConversasPage />} />
                     <Route path="/conversas/:id" element={<ChatPage />} />

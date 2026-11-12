@@ -29,10 +29,10 @@ interface EmptyStateProps {
 export function EmptyState({ icon: Icon, title, children }: EmptyStateProps) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3 px-6 py-10 text-center">
-      <span className="flex size-14 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
-        <Icon className="size-6" aria-hidden="true" />
+      <span className="flex size-16 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground">
+        <Icon className="size-7" aria-hidden="true" />
       </span>
-      <h2 className="text-lg font-semibold">{title}</h2>
+      <h2 className="text-base font-semibold">{title}</h2>
       {children && <div className="max-w-xs text-sm text-muted-foreground">{children}</div>}
     </div>
   );

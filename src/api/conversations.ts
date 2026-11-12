@@ -9,6 +9,8 @@ const conversationSchema = z.object({
   participant_phone: z.string().nullish(),
   participant_photo_storage_url: z.string().nullish(),
   is_group: z.boolean().nullish(),
+  connected_instance_id: z.string().nullish(),
+  connected_phone: z.string().nullish(),
   assigned_agent_id: z.string().nullish(),
   agent_name: z.string().nullish(),
   lead_id: z.string().nullish(),

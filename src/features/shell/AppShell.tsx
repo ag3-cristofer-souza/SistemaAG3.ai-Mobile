@@ -6,16 +6,25 @@ import { useWorkspace } from "@/features/workspace/WorkspaceProvider";
 import { keepDeviceRegistered } from "@/lib/push";
 import { isManagerRole } from "@/lib/roles";
 import { cn } from "@/lib/utils";
+import globo from "@/assets/globo.svg";
 import { realtime, useRealtimeState } from "@/realtime";
 import { safePath } from "@/sw-logic";
 import { homeFor, navItemsFor } from "./navigation";
 
 const STATUS = {
-  online: { label: "Ao vivo", dot: "bg-success" },
-  connecting: { label: "Conectando", dot: "bg-warning" },
-  reconnecting: { label: "Reconectando", dot: "bg-warning" },
-  unauthorized: { label: "Sem conexão", dot: "bg-destructive" },
-  idle: { label: "Sem conexão", dot: "bg-muted-foreground" },
+  online: { label: "Ao vivo", dot: "bg-success", pill: "bg-success/10 text-success" },
+  connecting: { label: "Conectando", dot: "bg-warning", pill: "bg-warning/10 text-warning" },
+  reconnecting: { label: "Reconectando", dot: "bg-warning", pill: "bg-warning/10 text-warning" },
+  unauthorized: {
+    label: "Sem conexão",
+    dot: "bg-destructive",
+    pill: "bg-destructive/10 text-destructive",
+  },
+  idle: {
+    label: "Sem conexão",
+    dot: "bg-muted-foreground",
+    pill: "bg-muted text-muted-foreground",
+  },
 } as const;
 
 /** Mantém a conexão de tempo real ligada à empresa ativa e recarrega o que pode ter sido perdido. */
@@ -80,13 +89,29 @@ export function AppShell() {
     // `relative` e `overflow-hidden`: texto oculto (`sr-only`) é posicionado de forma absoluta e, sem isso, escaparia da
     // lista que rola e aumentaria a altura da página inteira.
     <div className="relative flex h-dvh flex-col overflow-hidden bg-background">
-      <header className="flex shrink-0 items-center justify-between gap-3 border-b bg-card px-4 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))]">
-        <h1 className="truncate text-base font-semibold">{workspace.company_name ?? "AG3"}</h1>
+      <header className="flex shrink-0 items-center gap-3 bg-card px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] shadow-card">
+        <img src={globo} alt="" width={32} height={32} className="size-8 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-primary">
+            AG3
+          </p>
+          <h1 className="truncate text-base font-semibold leading-tight">
+            {workspace.company_name ?? "AG3"}
+          </h1>
+        </div>
         <span
-          className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground"
+          className={cn(
+            "flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
+            status.pill
+          )}
           role="status"
         >
-          <span className={cn("size-2 rounded-full", status.dot)} aria-hidden="true" />
+          <span className="relative flex size-2" aria-hidden="true">
+            {state === "online" && (
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60 motion-reduce:hidden" />
+            )}
+            <span className={cn("relative inline-flex size-2 rounded-full", status.dot)} />
+          </span>
           {status.label}
         </span>
       </header>
@@ -97,7 +122,7 @@ export function AppShell() {
 
       <nav
         aria-label="Principal"
-        className="flex shrink-0 border-t bg-card pb-[env(safe-area-inset-bottom)]"
+        className="flex shrink-0 border-t bg-card px-1 pb-[env(safe-area-inset-bottom)]"
       >
         {navItemsFor(role).map(({ to, label, icon: Icon }) => (
           <NavLink
@@ -105,13 +130,24 @@ export function AppShell() {
             to={to}
             className={({ isActive }) =>
               cn(
-                "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs",
-                isActive ? "font-medium text-primary" : "text-muted-foreground"
+                "group flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[0.6875rem]",
+                isActive ? "font-semibold text-foreground" : "text-muted-foreground"
               )
             }
           >
-            <Icon className="size-5" aria-hidden="true" />
-            {label}
+            {({ isActive }) => (
+              <>
+                <span
+                  className={cn(
+                    "flex h-8 w-14 items-center justify-center rounded-full transition-colors",
+                    isActive ? "bg-secondary text-primary" : ""
+                  )}
+                >
+                  <Icon className="size-5" strokeWidth={isActive ? 2.4 : 2} aria-hidden="true" />
+                </span>
+                {label}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>

@@ -27,17 +27,21 @@ export function Sheet({ open, title, onClose, children }: SheetProps) {
       onClick={(event) => {
         if (event.target === dialog.current) onClose();
       }}
-      className="m-0 mt-auto max-h-[85dvh] w-full max-w-none overflow-y-auto rounded-t-xl bg-card p-0 text-foreground backdrop:bg-black/50"
+      className="m-0 mt-auto max-h-[85dvh] w-full max-w-none overflow-y-auto rounded-t-3xl bg-card p-0 text-foreground shadow-float backdrop:bg-[#0b1530]/55"
     >
       {open && (
         <div className="pb-[calc(1rem+env(safe-area-inset-bottom))]">
-          <div className="flex items-center justify-between border-b py-1 pl-4 pr-1">
-            <h2 className="font-semibold">{title}</h2>
+          <div
+            aria-hidden="true"
+            className="mx-auto mt-2 h-1 w-10 rounded-full bg-muted-foreground/25"
+          />
+          <div className="flex items-center justify-between py-1 pl-5 pr-1">
+            <h2 className="text-lg font-semibold">{title}</h2>
             <button
               type="button"
               aria-label="Fechar"
               onClick={onClose}
-              className="flex size-11 items-center justify-center"
+              className="flex size-11 items-center justify-center rounded-full text-muted-foreground active:bg-muted"
             >
               <X className="size-5" aria-hidden="true" />
             </button>

@@ -31,8 +31,10 @@ describe("effectiveRole", () => {
     expect(effectiveRole({ is_super_admin: true, workspaces: [] }, "a")).toBe("admin");
   });
 
-  it("admin de outra empresa continua admin na empresa sem linha própria", () => {
-    expect(effectiveRole({ workspaces: [{ company_id: "x", role: "admin" }] }, "y")).toBe("admin");
+  it("admin de outra empresa não vira admin na empresa sem linha própria", () => {
+    expect(effectiveRole({ workspaces: [{ company_id: "x", role: "admin" }] }, "y")).toBe(
+      "operator"
+    );
   });
 
   it("sem linha na empresa ativa, gestor de outra empresa não vira gestor", () => {

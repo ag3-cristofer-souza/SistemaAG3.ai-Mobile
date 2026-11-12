@@ -38,11 +38,20 @@ export function FunnelBar({ leadId }: { leadId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex min-h-11 shrink-0 items-center gap-2 border-b bg-card px-4 text-left text-sm"
+        className="flex min-h-11 shrink-0 items-center gap-2 border-t border-border/60 bg-card px-4 text-left text-sm"
       >
-        <span className="text-muted-foreground">Funil:</span>
-        <span className="min-w-0 flex-1 truncate font-medium">
-          {card ? stageLabel(stages, card.status) : "Sem card neste lead"}
+        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Funil:
+        </span>
+        <span className="min-w-0 flex-1">
+          <span
+            className={cn(
+              "inline-block max-w-full truncate rounded-full px-2.5 py-0.5 text-xs font-semibold",
+              card ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground"
+            )}
+          >
+            {card ? stageLabel(stages, card.status) : "Sem card neste lead"}
+          </span>
         </span>
         <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       </button>

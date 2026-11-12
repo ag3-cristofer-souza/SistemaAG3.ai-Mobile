@@ -51,9 +51,9 @@ function ItemRow({
       <button
         type="button"
         onClick={onOpen}
-        className="flex min-h-16 w-full gap-3 rounded-lg border bg-card p-3 text-left active:bg-muted"
+        className="surface flex min-h-16 w-full gap-3 p-3 text-left active:bg-muted"
       >
-        <span className="w-11 shrink-0 text-sm font-medium tabular-nums">
+        <span className="w-11 shrink-0 text-sm font-semibold tabular-nums">
           {showDay ? formatShortDay(item.start_at) : formatClock(item.start_at)}
         </span>
         <span
@@ -62,7 +62,14 @@ function ItemRow({
           style={item.type?.color ? { backgroundColor: item.type.color } : undefined}
         />
         <span className="min-w-0 flex-1">
-          <span className={cn("block break-words", item.done && "line-through")}>{item.title}</span>
+          <span
+            className={cn(
+              "block break-words font-medium",
+              item.done && "text-muted-foreground line-through"
+            )}
+          >
+            {item.title}
+          </span>
           {details && (
             <span className="block truncate text-xs text-muted-foreground">{details}</span>
           )}
@@ -172,7 +179,7 @@ export function CalendarioPage() {
     <div className="relative h-full">
       {/* No celular, o calendário rola junto com a lista, para não sobrar pouca tela. Em tela larga, são duas colunas. */}
       <div className="h-full overflow-y-auto md:flex md:overflow-hidden">
-        <aside className="space-y-2 border-b bg-card p-2 md:w-80 md:shrink-0 md:overflow-y-auto md:border-b-0 md:border-r md:p-3">
+        <aside className="space-y-2 bg-card p-2 shadow-card md:w-80 md:shrink-0 md:overflow-y-auto md:border-b-0 md:border-r md:p-3">
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -228,7 +235,7 @@ export function CalendarioPage() {
                 <div
                   role="group"
                   aria-label="De quem"
-                  className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1"
+                  className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1"
                 >
                   {(
                     [
@@ -242,8 +249,10 @@ export function CalendarioPage() {
                       aria-pressed={mine === value}
                       onClick={() => setMine(value)}
                       className={cn(
-                        "min-h-9 rounded-md px-3 text-xs",
-                        mine === value ? "bg-card font-medium shadow-sm" : "text-muted-foreground"
+                        "min-h-9 rounded-lg px-3 text-xs font-medium",
+                        mine === value
+                          ? "bg-card text-foreground shadow-card"
+                          : "text-muted-foreground"
                       )}
                     >
                       {label}
@@ -259,7 +268,9 @@ export function CalendarioPage() {
           <div className="mx-auto max-w-3xl space-y-4">
             {day === today && !!overdue.data?.length && (
               <section className="space-y-2">
-                <h3 className="text-sm font-medium">Atrasadas: {overdue.data.length}</h3>
+                <h3 className="text-sm font-semibold text-destructive">
+                  Atrasadas: {overdue.data.length}
+                </h3>
                 <ul className="space-y-2">
                   {overdue.data.map((item) => (
                     <ItemRow
@@ -276,7 +287,7 @@ export function CalendarioPage() {
               {linked.isError && "Este compromisso não existe mais ou não está na sua agenda."}
             </ErrorText>
             <section className="space-y-2">
-              <h3 className="text-sm font-medium first-letter:uppercase">
+              <h3 className="text-sm font-semibold first-letter:uppercase">
                 {formatDayLabel(date.toISOString())}
               </h3>
               {feed.isPending && (
@@ -311,7 +322,7 @@ export function CalendarioPage() {
         type="button"
         aria-label="Novo compromisso"
         onClick={() => setPanel({ type: "form", seed: { day } })}
-        className="absolute bottom-4 right-4 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg"
+        className="absolute bottom-4 right-4 flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-float"
       >
         <Plus className="size-6" aria-hidden="true" />
       </button>

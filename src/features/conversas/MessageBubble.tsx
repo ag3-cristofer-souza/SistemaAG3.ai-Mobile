@@ -1,4 +1,13 @@
-import { AlertCircle, Check, CheckCheck, Clock, CornerUpLeft, FileText } from "lucide-react";
+import {
+  AlertCircle,
+  Bot,
+  Check,
+  CheckCheck,
+  Clock,
+  CornerUpLeft,
+  FileText,
+  Zap,
+} from "lucide-react";
 import type { Message } from "@/api/conversations";
 import { formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -15,7 +24,7 @@ function DeliveryStatus({ status }: { status: string | null | undefined }) {
     );
   }
   if (status === "read") {
-    return <CheckCheck className="size-3.5 text-primary" aria-label="Lida" role="img" />;
+    return <CheckCheck className="size-3.5 text-sky-500" aria-label="Lida" role="img" />;
   }
   if (status === "delivered")
     return <CheckCheck className="size-3.5" aria-label="Entregue" role="img" />;
@@ -35,7 +44,7 @@ function Media({ message }: { message: Message }) {
           alt={kind === "sticker" ? "Figurinha" : "Imagem recebida"}
           loading="lazy"
           className={cn(
-            "rounded-md object-cover",
+            "rounded-xl object-cover",
             kind === "sticker" ? "size-32" : "max-h-72 w-full"
           )}
         />
@@ -45,17 +54,21 @@ function Media({ message }: { message: Message }) {
   if (kind === "audio")
     return <audio controls preload="none" src={url} className="h-11 w-60 max-w-full" />;
   if (kind === "video") {
-    return <video controls preload="none" src={url} className="max-h-72 w-full rounded-md" />;
+    return <video controls preload="none" src={url} className="max-h-72 w-full rounded-xl" />;
   }
   return (
     <a
       href={url}
       target="_blank"
       rel="noreferrer noopener"
-      className="flex min-h-11 items-center gap-2 underline"
+      className="flex min-h-12 items-center gap-2.5 rounded-xl bg-black/5 px-2.5 py-2"
     >
-      <FileText className="size-5 shrink-0" aria-hidden="true" />
-      <span className="min-w-0 truncate">{message.media_caption || "Abrir documento"}</span>
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+        <FileText className="size-5" aria-hidden="true" />
+      </span>
+      <span className="min-w-0 truncate font-medium">
+        {message.media_caption || "Abrir documento"}
+      </span>
     </a>
   );
 }
@@ -77,7 +90,7 @@ export function MessageBubble({ message, onReply, local }: MessageBubbleProps) {
   const senderType = message.sender_type ?? "";
   if (message.message_type === "system_handoff") {
     return (
-      <p className="mx-auto my-2 max-w-[85%] rounded-md border bg-card px-3 py-2 text-center text-sm">
+      <p className="mx-auto my-2 max-w-[85%] rounded-xl bg-secondary px-3 py-2 text-center text-xs font-medium text-secondary-foreground shadow-card">
         {message.body}
       </p>
     );
@@ -86,7 +99,7 @@ export function MessageBubble({ message, onReply, local }: MessageBubbleProps) {
   if (message.is_deleted) {
     return (
       <div className={cn("flex", outgoing ? "justify-end" : "justify-start")}>
-        <p className="rounded-lg border px-3 py-2 text-sm italic text-muted-foreground">
+        <p className="rounded-2xl bg-card/70 px-3 py-2 text-sm italic text-muted-foreground">
           Mensagem apagada
         </p>
       </div>
@@ -102,20 +115,35 @@ export function MessageBubble({ message, onReply, local }: MessageBubbleProps) {
       : senderType === "system"
         ? "Automação"
         : message.sender_name || null;
+  const SenderIcon = senderType === "ai" ? Bot : senderType === "system" ? Zap : null;
 
   const failed = local && message.delivery_status === "failed";
   return (
     <div className={cn("flex items-center", outgoing ? "flex-row-reverse" : "flex-row")}>
       <div
         className={cn(
-          "max-w-[80%] space-y-1 rounded-lg px-3 py-2 text-sm",
-          outgoing ? "bg-bubble-out text-foreground shadow-sm" : "bg-card shadow-sm"
+          "max-w-[80%] space-y-1 rounded-2xl px-3 py-2 text-[0.9375rem] leading-snug shadow-card",
+          outgoing ? "rounded-tr-md bg-bubble-out text-foreground" : "rounded-tl-md bg-card"
         )}
       >
-        {sender && <p className="text-xs font-medium text-muted-foreground">{sender}</p>}
+        {sender && (
+          <p
+            className={cn(
+              "flex items-center gap-1 text-xs font-semibold",
+              senderType === "ai"
+                ? "text-violet-700"
+                : senderType === "system"
+                  ? "text-warning"
+                  : "text-primary"
+            )}
+          >
+            {SenderIcon && <SenderIcon className="size-3.5" aria-hidden="true" />}
+            {sender}
+          </p>
+        )}
         {quote && (
-          <blockquote className="rounded border-l-2 border-primary bg-black/5 px-2 py-1 text-xs">
-            <p className="font-medium">{quote.author}</p>
+          <blockquote className="rounded-lg border-l-[3px] border-primary bg-black/5 px-2 py-1 text-xs">
+            <p className="font-semibold text-primary">{quote.author}</p>
             <p className="line-clamp-2 text-muted-foreground">{quote.text}</p>
           </blockquote>
         )}
@@ -150,7 +178,7 @@ export function MessageBubble({ message, onReply, local }: MessageBubbleProps) {
           type="button"
           aria-label="Responder"
           onClick={() => onReply(message)}
-          className="flex size-11 shrink-0 items-center justify-center text-muted-foreground/70 active:text-foreground"
+          className="flex size-11 shrink-0 items-center justify-center text-muted-foreground/50 active:text-foreground"
         >
           <CornerUpLeft className="size-4" aria-hidden="true" />
         </button>

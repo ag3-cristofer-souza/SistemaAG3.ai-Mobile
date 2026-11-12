@@ -12,7 +12,7 @@ export function PeriodPicker({
     <div
       role="group"
       aria-label="Período"
-      className="grid grid-cols-4 gap-1 rounded-lg bg-muted p-1"
+      className="grid grid-cols-4 gap-1 rounded-xl bg-muted p-1"
     >
       {PERIODS.map((item) => (
         <button
@@ -21,8 +21,8 @@ export function PeriodPicker({
           aria-pressed={item.key === value}
           onClick={() => onChange(item.key)}
           className={cn(
-            "min-h-10 rounded-md text-xs",
-            item.key === value ? "bg-card font-medium shadow-sm" : "text-muted-foreground"
+            "min-h-10 rounded-lg text-xs font-medium transition-colors",
+            item.key === value ? "bg-card text-foreground shadow-card" : "text-muted-foreground"
           )}
         >
           {item.label}

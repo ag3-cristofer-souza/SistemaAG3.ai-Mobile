@@ -4,15 +4,15 @@ import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 const variants = cva(
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground active:bg-primary/90",
+        default: "bg-primary text-primary-foreground shadow-sm active:bg-primary/90",
         secondary: "bg-secondary text-secondary-foreground active:bg-secondary/80",
-        outline: "border border-input bg-transparent active:bg-muted",
+        outline: "border border-input bg-card active:bg-muted",
         ghost: "active:bg-muted",
-        destructive: "border border-destructive text-destructive active:bg-destructive/10",
+        destructive: "bg-destructive/10 text-destructive active:bg-destructive/20",
       },
       block: { true: "w-full" },
     },

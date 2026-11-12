@@ -382,6 +382,20 @@ devolve a mensagem já criada, sem novo envio ao provedor. Não exige migration.
 | **9. Calendário** | Mini calendário do mês, recolhível para a semana no celular e fixo ao lado da lista em tela larga; ver, criar, editar e excluir, com histórico no lead; aviso no aparelho e no WhatsApp | Cada ação aparece no histórico do lead; aviso chega nos dois canais | Escrita (adendo hh); WhatsApp segue sem validação |
 | **10. Fechamento** | Preferências de notificação, histórico de envios, botão no painel web, alertas do gestor, revisão de segurança, 8.1 etapa 2, piloto | 2 semanas de uso real sem incidente grave | Escritos (adendos hi e hj): preferências, histórico, alertas e botão no painel. Faltam segurança, etapa 2 e piloto |
 
+### Revisão visual e instância da conversa (12/11, só app)
+
+Pedido do Daniel: telas mais bonitas e, em cada conversa, a instância e, para gestor e admin, o operador.
+
+- **Visual:** a decisão D7 continua (app claro, azul-marinho só na abertura, no login e em destaques). Agora há cartões brancos com sombra
+  leve (`.surface`), etiquetas (`ui/chip.tsx`), avatar com cor fixa por nome, filas e seções em pílulas, barra inferior com o item ativo
+  destacado, chat com fundo pontilhado e balões com ponta, destaque da fila e do perfil no azul da marca (`.brand-gradient`) e indicadores
+  com ícone.
+- **Instância:** o nome vem de `GET /instances`, a mesma rota e o mesmo `display_name` do painel, buscada a cada 10 min. A conversa é
+  ligada pelo `connected_instance_id` ou, nas antigas, pelo número. Se o servidor não listar a instância para esta pessoa, aparece o
+  número do canal. Não houve mudança no backend.
+- **Operador:** gestor e admin veem com quem a conversa está, ou "Sem operador", na lista e no chat. O operador só vê o nome quando a
+  conversa é de outra pessoa.
+
 **Como cada onda chega à produção:** Daniel roda a suíte e commita. Só app: o `push` no Mobile testa e implanta sozinho (`ci.yml`).
 Com backend: `push` → `build` verde → manifests novos, se houver → workflow `deploy`, com aprovação de migrations.
 

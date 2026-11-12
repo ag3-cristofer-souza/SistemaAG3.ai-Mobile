@@ -66,3 +66,21 @@ export function initials(name: string): string {
   const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : "";
   return (first + last).toUpperCase() || "?";
 }
+
+/** Telefone brasileiro legível: "(11) 91111-2222". Outros formatos voltam como vieram, só com os dígitos. */
+export function formatPhone(raw: string | null | undefined): string {
+  const digits = (raw ?? "").replace(/\D/g, "");
+  if (!digits) return "";
+  const local = digits.length >= 12 && digits.startsWith("55") ? digits.slice(2) : digits;
+  if (local.length === 11) return `(${local.slice(0, 2)}) ${local.slice(2, 7)}-${local.slice(7)}`;
+  if (local.length === 10) return `(${local.slice(0, 2)}) ${local.slice(2, 6)}-${local.slice(6)}`;
+  return digits;
+}
+
+/** Matiz estável por nome, para cada contato ter a mesma cor de avatar em todas as telas. */
+export function nameHue(name: string): number {
+  const HUES = [221, 262, 330, 12, 32, 152, 188, 200];
+  let hash = 0;
+  for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) | 0;
+  return HUES[Math.abs(hash) % HUES.length]!;
+}

@@ -7,30 +7,34 @@
    para ser denso no desktop; aqui o toque e a leitura vêm primeiro. */
 @layer base {
   :root {
-    --background: 214 65% 96%;
-    --foreground: 220 13% 13%;
-    --card: 214 100% 99%;
-    --card-foreground: 220 13% 13%;
-    --primary: 217 91% 60%;
+    /* Superfícies: fundo cinza-azulado bem claro e cartões brancos com sombra leve, sem borda em tudo. */
+    --background: 220 33% 96%;
+    --foreground: 222 30% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 30% 14%;
+    --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 214 100% 94%;
-    --secondary-foreground: 217 91% 45%;
-    --muted: 214 55% 93%;
-    --muted-foreground: 220 12% 38%;
-    --accent: 217 91% 60%;
+    --secondary: 217 100% 95%;
+    --secondary-foreground: 221 83% 40%;
+    --muted: 220 27% 93%;
+    --muted-foreground: 220 12% 40%;
+    --accent: 221 83% 53%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 100%;
-    --success: 142 71% 30%;
+    --success: 152 69% 28%;
     --success-foreground: 0 0% 100%;
     --warning: 30 90% 35%;
     --warning-foreground: 0 0% 100%;
-    --border: 214 45% 87%;
-    --input: 214 40% 79%;
-    --ring: 217 91% 60%;
-    --radius: 0.75rem;
+    --border: 220 22% 89%;
+    --input: 220 20% 80%;
+    --ring: 221 83% 53%;
+    /* Azul-marinho da marca (#12224e), usado em destaques dentro do app claro. */
+    --brand: 224 62% 19%;
+    --brand-foreground: 0 0% 100%;
+    --radius: 0.875rem;
     /* Chat no estilo do WhatsApp, com fundo no tom azulado do app e mensagem enviada em verde claro. */
-    --chat: 214 38% 91%;
+    --chat: 218 30% 92%;
     --bubble-out: 110 62% 90%;
     color-scheme: light;
   }
@@ -57,6 +61,8 @@
     --border: 223 40% 32%;
     --input: 223 35% 50%;
     --ring: 218 100% 75%;
+    --brand: 224 62% 19%;
+    --brand-foreground: 0 0% 100%;
     color-scheme: dark;
   }
 
@@ -82,6 +88,60 @@
   select {
     font-size: 16px;
   }
+}
+
+@layer components {
+  /* Cartão padrão do app. */
+  .surface {
+    @apply rounded-2xl bg-card text-card-foreground shadow-card;
+  }
+  /* Interruptor sobre o checkbox nativo: continua acessível e clicável pelo rótulo. */
+  .switch {
+    @apply relative h-7 w-12 cursor-pointer appearance-none rounded-full bg-input transition-colors;
+  }
+  .switch::before {
+    content: "";
+    @apply absolute left-0.5 top-0.5 size-6 rounded-full bg-white shadow transition-transform;
+  }
+  .switch:checked {
+    @apply bg-primary;
+  }
+  .switch:checked::before {
+    @apply translate-x-5;
+  }
+  .switch:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2;
+  }
+  /* Cartão dentro de cartão: só o fundo muda, sem sombra dupla. */
+  .surface .surface {
+    @apply bg-muted/60 shadow-none;
+  }
+  /* Destaque na cor da marca, com o brilho do globo no canto. */
+  .brand-gradient {
+    background:
+      radial-gradient(120% 140% at 100% 0%, rgba(91, 147, 255, 0.45) 0%, rgba(91, 147, 255, 0) 55%),
+      linear-gradient(135deg, #12224e 0%, #1a3a8f 100%);
+    color: #fff;
+  }
+  /* Fundo do chat: pontilhado discreto, como o papel de parede dos apps de mensagem. */
+  .chat-wallpaper {
+    background-color: hsl(var(--chat));
+    background-image: radial-gradient(hsl(var(--foreground) / 0.06) 1px, transparent 1px);
+    background-size: 18px 18px;
+  }
+}
+
+/* Fundo das telas da marca (login, instalação): brilho azul no alto, pontilhado discreto e escurecido no rodapé. */
+.brand-screen {
+  background-color: #12224e;
+  background-image:
+    radial-gradient(60% 45% at 50% 18%, rgba(47, 107, 255, 0.35) 0%, rgba(47, 107, 255, 0) 70%),
+    radial-gradient(80% 50% at 50% 110%, rgba(4, 10, 40, 0.75) 0%, rgba(4, 10, 40, 0) 70%),
+    radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    100% 100%,
+    22px 22px;
 }
 
 /* Abertura e globo: vêm de LP-AG3/src/styles/global.css. */
@@ -199,5 +259,8 @@
 @media (prefers-reduced-motion: reduce) {
   .abertura {
     display: none;
+  }
+  .globo-mapa {
+    animation: none;
   }
 }

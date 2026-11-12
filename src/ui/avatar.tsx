@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { initials } from "@/lib/format";
+import { initials, nameHue } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 interface AvatarProps {
@@ -11,7 +11,7 @@ interface AvatarProps {
 /** Foto, ou as iniciais quando não há foto ou o link dela já venceu (fotos do WhatsApp vencem). */
 export function Avatar({ name, photo, className }: AvatarProps) {
   const [failed, setFailed] = useState<string | null>(null);
-  const base = "size-11 shrink-0 rounded-full";
+  const base = "size-12 shrink-0 rounded-full";
   if (photo && failed !== photo) {
     return (
       <img
@@ -19,19 +19,17 @@ export function Avatar({ name, photo, className }: AvatarProps) {
         alt=""
         loading="lazy"
         referrerPolicy="no-referrer"
-        className={cn(base, "object-cover", className)}
+        className={cn(base, "bg-muted object-cover", className)}
         onError={() => setFailed(photo)}
       />
     );
   }
+  const hue = nameHue(name);
   return (
     <span
       aria-hidden="true"
-      className={cn(
-        base,
-        "flex items-center justify-center bg-secondary text-sm font-semibold text-secondary-foreground",
-        className
-      )}
+      style={{ backgroundColor: `hsl(${hue} 85% 93%)`, color: `hsl(${hue} 60% 32%)` }}
+      className={cn(base, "flex items-center justify-center text-sm font-semibold", className)}
     >
       {initials(name)}
     </span>

@@ -7,6 +7,7 @@ import { useAuth, useCurrentUser } from "@/features/auth/AuthProvider";
 import { useWorkspace } from "@/features/workspace/WorkspaceProvider";
 import { enablePush, getPushStatus, type PushStatus } from "@/lib/push";
 import { isManagerRole, ROLE_LABEL } from "@/lib/roles";
+import { cn } from "@/lib/utils";
 import { Avatar } from "@/ui/avatar";
 import { Button } from "@/ui/button";
 import { ErrorText } from "@/ui/feedback";
@@ -44,7 +45,7 @@ function Toggle({
       <input
         type="checkbox"
         role="switch"
-        className="size-6 shrink-0 accent-primary"
+        className="switch shrink-0"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
       />
@@ -111,7 +112,7 @@ function NotificationPreferences() {
               </label>
               <select
                 id={limitSelect}
-                className="min-h-11 w-full rounded-md border border-input bg-background px-3 text-base"
+                className="min-h-11 w-full rounded-xl border border-input bg-background px-3 text-base"
                 value={value.queue_alert_minutes}
                 onChange={(event) =>
                   save.mutate({ queue_alert_minutes: Number(event.target.value) })
@@ -151,11 +152,18 @@ function NotificationsCard() {
   };
   const Icon = status === "granted" ? Bell : BellOff;
   return (
-    <section className="space-y-3 rounded-lg border bg-card p-4">
+    <section className="surface space-y-3 p-4">
       <div className="flex gap-3">
-        <Icon className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <span
+          className={cn(
+            "flex size-10 shrink-0 items-center justify-center rounded-xl",
+            status === "granted" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
+          )}
+        >
+          <Icon className="size-5" aria-hidden="true" />
+        </span>
         <div>
-          <h2 className="font-medium">Notificações</h2>
+          <h2 className="font-semibold">Notificações</h2>
           <p className="text-sm text-muted-foreground">{PUSH_TEXT[status]}</p>
         </div>
       </div>
@@ -179,23 +187,25 @@ export function ContaPage() {
 
   return (
     <div className="space-y-4 p-4">
-      <section className="flex items-center gap-3 rounded-lg border bg-card p-4">
-        <Avatar name={name} className="size-12" />
+      <section className="brand-gradient flex items-center gap-4 rounded-2xl p-5 shadow-float">
+        <Avatar name={name} className="size-14 ring-2 ring-white/40" />
         <div className="min-w-0">
-          <p className="truncate font-medium">{name}</p>
-          {user.email && <p className="truncate text-sm text-muted-foreground">{user.email}</p>}
-          <p className="text-sm text-muted-foreground">{ROLE_LABEL[role]}</p>
+          <p className="truncate text-lg font-semibold">{name}</p>
+          {user.email && <p className="truncate text-sm text-white/80">{user.email}</p>}
+          <p className="mt-1.5 inline-block rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold">
+            {ROLE_LABEL[role]}
+          </p>
         </div>
       </section>
 
       {workspaces.length > 1 && (
-        <section className="space-y-1.5 rounded-lg border bg-card p-4">
-          <label htmlFor={selectId} className="block text-sm font-medium">
+        <section className="surface space-y-1.5 p-4">
+          <label htmlFor={selectId} className="block text-sm font-semibold">
             Empresa
           </label>
           <select
             id={selectId}
-            className="min-h-11 w-full rounded-md border border-input bg-background px-3"
+            className="min-h-11 w-full rounded-xl border border-input bg-background px-3"
             value={workspace.company_id}
             onChange={(event) => switchWorkspace(event.target.value)}
           >
@@ -212,10 +222,12 @@ export function ContaPage() {
 
       <Link
         to="/diagnostico"
-        className="flex min-h-14 items-center gap-3 rounded-lg border bg-card px-4"
+        className="surface flex min-h-14 items-center gap-3 px-4 active:bg-muted"
       >
-        <Stethoscope className="size-5 text-muted-foreground" aria-hidden="true" />
-        <span className="flex-1">Testar este aparelho</span>
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
+          <Stethoscope className="size-5" aria-hidden="true" />
+        </span>
+        <span className="flex-1 font-medium">Testar este aparelho</span>
         <ChevronRight className="size-5 text-muted-foreground" aria-hidden="true" />
       </Link>
 

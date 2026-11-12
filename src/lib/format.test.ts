@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { formatDayLabel, formatDuration, formatListTime, initials } from "./format";
+import {
+  formatDayLabel,
+  formatDuration,
+  formatListTime,
+  formatPhone,
+  initials,
+  nameHue,
+} from "./format";
 
 const NOW = new Date(2026, 10, 6, 15, 30);
 const at = (...args: [number, number, number, number?, number?]) => new Date(...args).toISOString();
@@ -41,5 +48,25 @@ describe("iniciais", () => {
     expect(initials("Ana Maria Souza")).toBe("AS");
     expect(initials("ana")).toBe("A");
     expect(initials("  ")).toBe("?");
+  });
+});
+
+describe("telefone", () => {
+  it.each([
+    ["5511911112222", "(11) 91111-2222"],
+    ["551133334444", "(11) 3333-4444"],
+    ["11911112222", "(11) 91111-2222"],
+    ["+55 (11) 91111-2222", "(11) 91111-2222"],
+    ["4915112345678", "4915112345678"],
+    [null, ""],
+  ])("%s → %s", (raw, expected) => {
+    expect(formatPhone(raw)).toBe(expected);
+  });
+});
+
+describe("cor do avatar", () => {
+  it("é a mesma para o mesmo nome", () => {
+    expect(nameHue("Maria Cliente")).toBe(nameHue("Maria Cliente"));
+    expect(typeof nameHue("")).toBe("number");
   });
 });

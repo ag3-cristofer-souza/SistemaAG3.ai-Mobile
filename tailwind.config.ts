@@ -27,6 +27,7 @@ export default {
         muted: pair("muted"),
         accent: pair("accent"),
         card: pair("card"),
+        brand: pair("brand"),
         chat: token("chat"),
         "bubble-out": token("bubble-out"),
       },
@@ -34,6 +35,10 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        card: "0 1px 2px rgb(16 24 40 / 0.05), 0 1px 3px rgb(16 24 40 / 0.06)",
+        float: "0 6px 20px rgb(16 24 40 / 0.12)",
       },
       spacing: {
         "safe-top": "env(safe-area-inset-top)",

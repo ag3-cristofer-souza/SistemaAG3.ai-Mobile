@@ -23,8 +23,9 @@ export function effectiveRole(me: RoleSource, workspaceId: string | null): AppRo
   const rows = me.workspaces ?? [];
   const current = rows.find((row) => row.company_id && row.company_id === workspaceId);
   if (current) return normalizeRole(current.role);
-  // Admin de uma empresa acessa as demais (`accessible_workspaces`), mesmo sem linha própria nelas.
-  return rows.some((row) => normalizeRole(row.role) === "admin") ? "admin" : "operator";
+  // Sem linha na empresa ativa, nenhum papel elevado: o servidor só lista (e só aceita) empresas com papel
+  // (onda 0 do plano de parceiros, 12/11). Antes, admin de uma empresa virava admin em todas.
+  return "operator";
 }
 
 export const isManagerRole = (role: AppRole) => role === "admin" || role === "manager";

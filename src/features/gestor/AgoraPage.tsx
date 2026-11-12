@@ -1,11 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CloudOff, Unplug } from "lucide-react";
+import { Bot, CloudOff, Headset, PauseCircle, Radio, Unplug, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ApiError } from "@/api/client";
 import { dashboardApi, type LiveOperator } from "@/api/dashboard";
 import { formatDuration, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { realtime, useRealtimeState } from "@/realtime";
+import { Avatar } from "@/ui/avatar";
 import { Button } from "@/ui/button";
 import { EmptyState, FullScreenLoader } from "@/ui/feedback";
 
@@ -56,11 +57,24 @@ function useNow(intervalMs: number): number {
   return now;
 }
 
-function Tile({ label, value }: { label: string; value: number }) {
+function Tile({
+  label,
+  value,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: number;
+  icon: LucideIcon;
+  tone: string;
+}) {
   return (
-    <div className="rounded-lg border bg-card p-3">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
+    <div className="surface p-3">
+      <span className={cn("flex size-8 items-center justify-center rounded-lg", tone)}>
+        <Icon className="size-4" aria-hidden="true" />
+      </span>
+      <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight">{value}</p>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
     </div>
   );
 }
@@ -75,40 +89,50 @@ function OperatorRow({ operator }: { operator: LiveOperator }) {
     ? operator.systems.map((system) => SYSTEM_LABEL[system] ?? system).join(" e ")
     : "Offline";
   return (
-    <li className="space-y-1.5 px-4 py-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="min-w-0 truncate font-medium">{operator.name}</span>
-        <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+    <li className="flex gap-3 px-4 py-3">
+      <span className="relative h-fit">
+        <Avatar name={operator.name} className="size-10" />
+        <span
+          aria-hidden="true"
+          className={cn(
+            "absolute bottom-0 right-0 size-3 rounded-full border-2 border-card",
+            operator.online ? "bg-success" : "bg-muted-foreground/40"
+          )}
+        />
+      </span>
+      <div className="min-w-0 flex-1 space-y-1.5">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="min-w-0 truncate font-semibold">{operator.name}</span>
           <span
-            aria-hidden="true"
             className={cn(
-              "size-2 rounded-full",
-              operator.online ? "bg-success" : "bg-muted-foreground/40"
+              "shrink-0 text-xs font-medium",
+              operator.online ? "text-success" : "text-muted-foreground"
             )}
-          />
-          {presence}
-        </span>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        {limit !== null ? `${active} de ${limit} na fila` : `${active} na fila`} ·{" "}
-        {operator.in_attendance} em atendimento · {operator.on_hold} em espera
-        {atLimit && <span className="font-medium text-foreground"> · No limite</span>}
-      </p>
-      {limit !== null && limit > 0 && (
-        <div
-          role="meter"
-          aria-label={`Fila de ${operator.name}`}
-          aria-valuemin={0}
-          aria-valuemax={limit}
-          aria-valuenow={Math.min(active, limit)}
-          className="h-1 overflow-hidden rounded-full bg-muted"
-        >
-          <div
-            className={cn("h-full rounded-full", atLimit ? "bg-warning" : "bg-primary")}
-            style={{ width: `${percent}%` }}
-          />
+          >
+            {presence}
+          </span>
         </div>
-      )}
+        <p className="text-xs text-muted-foreground">
+          {limit !== null ? `${active} de ${limit} na fila` : `${active} na fila`} ·{" "}
+          {operator.in_attendance} em atendimento · {operator.on_hold} em espera
+          {atLimit && <span className="font-semibold text-warning"> · No limite</span>}
+        </p>
+        {limit !== null && limit > 0 && (
+          <div
+            role="meter"
+            aria-label={`Fila de ${operator.name}`}
+            aria-valuemin={0}
+            aria-valuemax={limit}
+            aria-valuenow={Math.min(active, limit)}
+            className="h-1.5 overflow-hidden rounded-full bg-muted"
+          >
+            <div
+              className={cn("h-full rounded-full", atLimit ? "bg-warning" : "bg-primary")}
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+        )}
+      </div>
     </li>
   );
 }
@@ -140,45 +164,67 @@ export function AgoraPage() {
 
   return (
     <div className="space-y-4 p-4">
-      <section className="rounded-lg border bg-card p-4">
-        <p className="text-sm text-muted-foreground">Fila sem dono</p>
-        <p className="mt-1 text-4xl font-semibold tabular-nums">{queue.unassigned}</p>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <section className="brand-gradient rounded-2xl p-5 shadow-float">
+        <p className="text-sm font-medium text-white/80">Fila sem dono</p>
+        <p className="mt-1 text-5xl font-bold tabular-nums tracking-tight">{queue.unassigned}</p>
+        <p className="mt-2 text-sm text-white/85">
           {waiting === null ? "Ninguém esperando" : `Maior espera: ${formatDuration(waiting)}`}
           {assignedWaiting > 0 && ` · ${assignedWaiting} aguardando aceite`}
         </p>
       </section>
 
-      <section className="grid grid-cols-3 gap-2" aria-label="Atendimentos">
-        <Tile label="Em atendimento" value={queue.in_attendance} />
-        <Tile label="Em espera" value={queue.on_hold} />
-        <Tile label="Com a IA" value={queue.with_ai} />
+      <section className="grid grid-cols-3 gap-2.5" aria-label="Atendimentos">
+        <Tile
+          label="Em atendimento"
+          value={queue.in_attendance}
+          icon={Headset}
+          tone="bg-success/10 text-success"
+        />
+        <Tile
+          label="Em espera"
+          value={queue.on_hold}
+          icon={PauseCircle}
+          tone="bg-warning/10 text-warning"
+        />
+        <Tile
+          label="Com a IA"
+          value={queue.with_ai}
+          icon={Bot}
+          tone="bg-violet-100 text-violet-700"
+        />
       </section>
 
-      <section className="rounded-lg border bg-card">
-        <h2 className="border-b px-4 py-3 text-sm font-medium">
+      <section className="surface overflow-hidden">
+        <h2 className="flex items-center gap-2 px-4 pt-3.5 text-sm font-semibold">
+          <Radio className="size-4 text-primary" aria-hidden="true" />
           Canais: {channels.connected} conectado{channels.connected === 1 ? "" : "s"}
         </h2>
         {channels.disconnected.length === 0 ? (
-          <p className="px-4 py-3 text-sm text-muted-foreground">Nenhum canal desconectado.</p>
+          <p className="px-4 pb-3.5 pt-2 text-sm text-muted-foreground">
+            Nenhum canal desconectado.
+          </p>
         ) : (
-          <ul className="divide-y">
+          <ul className="mt-2 divide-y divide-border/70">
             {channels.disconnected.map((channel) => (
               <li key={channel.id} className="flex items-center gap-3 px-4 py-3">
-                <Unplug className="size-4 shrink-0 text-destructive" aria-hidden="true" />
-                <span className="min-w-0 flex-1 truncate">{channel.name}</span>
-                <span className="shrink-0 text-xs font-medium">Desconectado</span>
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+                  <Unplug className="size-4" aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1 truncate font-medium">{channel.name}</span>
+                <span className="shrink-0 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
+                  Desconectado
+                </span>
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      <section className="rounded-lg border bg-card">
-        <h2 className="border-b px-4 py-3 text-sm font-medium">
+      <section className="surface overflow-hidden">
+        <h2 className="px-4 pt-3.5 text-sm font-semibold">
           Equipe: {online} online de {operators.length}
         </h2>
-        <ul className="divide-y">
+        <ul className="mt-1 divide-y divide-border/70">
           {ordered.map((operator) => (
             <OperatorRow key={operator.user_id} operator={operator} />
           ))}

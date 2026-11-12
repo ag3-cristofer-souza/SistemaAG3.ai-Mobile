@@ -69,7 +69,7 @@ function AssumeBar({ conversation }: { conversation: Conversation }) {
     },
   });
   return (
-    <div className="space-y-2 p-3">
+    <div className="surface m-2 space-y-2 p-3">
       <p className="text-center text-sm text-muted-foreground">
         {conversation.status === "qualification_in_progress"
           ? "A IA está atendendo. Assuma para responder você mesmo."
@@ -225,9 +225,9 @@ export function Composer({ conversation, replyTo, onClearReply, onSent }: Compos
   return (
     <div>
       {quote && (
-        <div className="flex items-center gap-2 border-b py-1 pl-3 pr-1">
-          <div className="min-w-0 flex-1 border-l-2 border-primary pl-2 text-xs">
-            <p className="font-medium">Respondendo a {quote.author}</p>
+        <div className="surface mx-2 mt-2 flex items-center gap-2 py-1 pl-3 pr-1">
+          <div className="min-w-0 flex-1 border-l-[3px] border-primary pl-2 text-xs">
+            <p className="font-semibold text-primary">Respondendo a {quote.author}</p>
             <p className="truncate text-muted-foreground">{quote.text}</p>
           </div>
           <button
@@ -240,10 +240,10 @@ export function Composer({ conversation, replyTo, onClearReply, onSent }: Compos
           </button>
         </div>
       )}
-      {error && <ErrorText className="px-3 pt-2">{error}</ErrorText>}
+      {error && <ErrorText className="px-4 pt-2">{error}</ErrorText>}
 
       {recording ? (
-        <div className="flex items-center gap-2 p-1.5">
+        <div className="surface m-1.5 flex items-center gap-2 rounded-full p-1">
           <button
             type="button"
             aria-label="Descartar gravação"
@@ -253,7 +253,16 @@ export function Composer({ conversation, replyTo, onClearReply, onSent }: Compos
           >
             <Trash2 className="size-5" aria-hidden="true" />
           </button>
-          <p className="flex-1 text-center text-sm tabular-nums" role="status">
+          <p
+            className="flex flex-1 items-center justify-center gap-2 text-sm font-medium tabular-nums"
+            role="status"
+          >
+            {recorder.state !== "encoding" && (
+              <span
+                aria-hidden="true"
+                className="size-2.5 animate-pulse rounded-full bg-destructive"
+              />
+            )}
             {recorder.state === "encoding"
               ? "Preparando o áudio…"
               : `Gravando ${formatDuration(recorder.seconds)}`}
@@ -269,34 +278,36 @@ export function Composer({ conversation, replyTo, onClearReply, onSent }: Compos
           </button>
         </div>
       ) : (
-        <div className="flex items-end gap-1 p-1.5">
-          <button
-            type="button"
-            aria-label="Anexar"
-            onClick={() => setAttachOpen(true)}
-            className={iconButton}
-          >
-            <Paperclip className="size-5" aria-hidden="true" />
-          </button>
-          <textarea
-            ref={textarea}
-            rows={1}
-            value={text}
-            placeholder="Mensagem"
-            aria-label="Mensagem"
-            onChange={(event) => {
-              setText(event.target.value);
-              event.target.style.height = "auto";
-              event.target.style.height = `${Math.min(event.target.scrollHeight + 2, MAX_TEXTAREA_PX)}px`;
-            }}
-            className="min-h-11 flex-1 resize-none rounded-3xl border border-input bg-background px-4 py-2.5 leading-5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
+        <div className="flex items-end gap-1.5 p-1.5">
+          <div className="flex min-w-0 flex-1 items-end rounded-3xl bg-card shadow-card">
+            <button
+              type="button"
+              aria-label="Anexar"
+              onClick={() => setAttachOpen(true)}
+              className={iconButton}
+            >
+              <Paperclip className="size-5" aria-hidden="true" />
+            </button>
+            <textarea
+              ref={textarea}
+              rows={1}
+              value={text}
+              placeholder="Mensagem"
+              aria-label="Mensagem"
+              onChange={(event) => {
+                setText(event.target.value);
+                event.target.style.height = "auto";
+                event.target.style.height = `${Math.min(event.target.scrollHeight + 2, MAX_TEXTAREA_PX)}px`;
+              }}
+              className="min-h-11 min-w-0 flex-1 resize-none bg-transparent py-2.5 pr-4 leading-5 outline-none"
+            />
+          </div>
           {text.trim() ? (
             <button
               type="button"
               aria-label="Enviar"
               onClick={sendText}
-              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-card"
             >
               <Send className="size-5" aria-hidden="true" />
             </button>
@@ -309,7 +320,7 @@ export function Composer({ conversation, replyTo, onClearReply, onSent }: Compos
                 setError("");
                 void recorder.start();
               }}
-              className={iconButton}
+              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-card disabled:opacity-50"
             >
               <Mic className="size-5" aria-hidden="true" />
             </button>

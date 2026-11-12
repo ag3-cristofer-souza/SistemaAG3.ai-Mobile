@@ -1,5 +1,6 @@
 import type { Conversation, ConversationCounts, ConversationFilters } from "@/api/conversations";
 import { isManagerRole, type AppRole } from "@/lib/roles";
+import type { ChipTone } from "@/ui/chip";
 
 export interface ConversationTab {
   key: string;
@@ -74,6 +75,15 @@ export const STATUS_LABEL: Record<string, string> = {
   in_attendance: "Em atendimento",
   on_hold: "Em espera",
   finished: "Finalizada",
+};
+
+/** Cor da etiqueta de situação na lista do gestor. */
+export const STATUS_TONE: Record<string, ChipTone> = {
+  qualification_in_progress: "violet",
+  pending: "warning",
+  in_attendance: "success",
+  on_hold: "neutral",
+  finished: "neutral",
 };
 
 export const conversationName = (conversation: Conversation) =>

@@ -308,6 +308,11 @@ async function mockBackend(page: Page, options: MockOptions = {}) {
         json({ data: [{ id: "lead-1", name: "Maria Cliente", phone: "5511" }] })
       );
     }
+    if (path === "/instances") {
+      return route.fulfill(
+        json({ data: [{ id: "inst-1", display_name: "Comercial", number: "5511911112222" }] })
+      );
+    }
     if (path === "/dashboard/overview") return route.fulfill(json({ data: OVERVIEW }));
     if (path === "/reports/marketing/visao") {
       if (role === "operator") return route.fulfill(json({ detail: "Permissao negada" }, 403));
@@ -589,6 +594,50 @@ test("operador vê as abas dele e a API recebe o filtro de cada uma", async ({ p
 
   await page.getByLabel("Buscar conversas").fill("maria");
   await expect.poll(() => requests.at(-1)?.get("search")).toBe("maria");
+});
+
+test("a conversa mostra a instância, e o gestor vê também com qual operador está", async ({
+  page,
+}) => {
+  const conversations = [
+    { ...CONV, connected_instance_id: "inst-1" },
+    {
+      ...CONV,
+      id: "conv-2",
+      participant_name: "Sem Dono",
+      status: "pending",
+      assigned_agent_id: null,
+      agent_name: null,
+      connected_instance_id: "fora-da-lista",
+      connected_phone: "5511933334444",
+    },
+  ];
+  await mockBackend(page, { role: "manager", conversations });
+  await passInstallGate(page);
+  await login(page);
+  const maria = page.getByRole("link", { name: /Maria Cliente/ });
+  await expect(maria).toContainText("Instância: Comercial");
+  await expect(maria).toContainText("Operador: Pessoa Teste");
+  const semDono = page.getByRole("link", { name: /Sem Dono/ });
+  // Instância que o servidor não listou aparece pelo número do canal.
+  await expect(semDono).toContainText("Instância: (11) 93333-4444");
+  await expect(semDono).toContainText("Sem operador");
+
+  await maria.click();
+  await expect(page.getByText("Instância: Comercial")).toBeVisible();
+  await expect(page.getByText("Operador: Pessoa Teste")).toBeVisible();
+});
+
+test("operador vê a instância da conversa, sem a etiqueta de operador", async ({ page }) => {
+  await mockBackend(page, { conversations: [{ ...CONV, connected_instance_id: "inst-1" }] });
+  await passInstallGate(page);
+  await login(page);
+  const maria = page.getByRole("link", { name: /Maria Cliente/ });
+  await expect(maria).toContainText("Instância: Comercial");
+  await expect(maria).not.toContainText("Operador:");
+  await maria.click();
+  await expect(page.getByText("Instância: Comercial")).toBeVisible();
+  await expect(page.getByText("Operador:")).toHaveCount(0);
 });
 
 test("rolar uma lista longa move só a lista, sem subir a página inteira", async ({ page }) => {

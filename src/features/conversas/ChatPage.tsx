@@ -1,5 +1,13 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowLeft, CloudOff, MessageCircleOff } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowLeft,
+  CloudOff,
+  Headset,
+  MessageCircleOff,
+  Smartphone,
+  UserRoundX,
+} from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -18,11 +26,15 @@ import {
   MESSAGES_PAGE_SIZE,
   type Message,
 } from "@/api/conversations";
+import { useCurrentUser } from "@/features/auth/AuthProvider";
+import { useWorkspace } from "@/features/workspace/WorkspaceProvider";
 import { formatDayLabel, isSameDay } from "@/lib/format";
+import { isManagerRole } from "@/lib/roles";
 import { clearConversationNotifications } from "@/lib/push";
 import { realtime, type RealtimeChange } from "@/realtime";
 import { Avatar } from "@/ui/avatar";
 import { Button } from "@/ui/button";
+import { Chip } from "@/ui/chip";
 import { EmptyState } from "@/ui/feedback";
 import { MessageBubble } from "./MessageBubble";
 import {
@@ -35,10 +47,12 @@ import {
 import { ChatActions } from "./ChatActions";
 import { Composer } from "./Composer";
 import { FunnelBar, LeadInfoButton } from "./LeadPanels";
+import { useInstanceLabel } from "./instances";
 import { clientIdOf, isLocalMessage, outbox, pendingBubbles, toLocalMessage } from "./outbox";
 import { conversationName, STATUS_LABEL } from "./tabs";
 
 const MARK_READ_THROTTLE_MS = 3_000;
+const NO_AGENT = "Sem operador";
 
 const asMessage = (value: unknown): Message | null => {
   const parsed = messageSchema.safeParse(value);
@@ -139,36 +153,68 @@ function useConversationDetail(conversationId: string) {
   return query;
 }
 
+interface HeaderDetails {
+  status?: string;
+  instance?: string | null;
+  agent?: string | null;
+}
+
 function ChatHeader({
   name,
-  subtitle,
+  details,
   photo,
   children,
 }: {
   name: string;
-  subtitle?: string;
+  details?: HeaderDetails;
   photo?: string | null;
   children?: ReactNode;
 }) {
   const navigate = useNavigate();
   return (
-    <header className="flex shrink-0 items-center gap-2 border-b bg-card py-1.5 pl-1 pr-1 pt-[calc(0.375rem+env(safe-area-inset-top))]">
+    <header className="flex shrink-0 items-center gap-2 bg-card py-2 pl-1 pr-1 pt-[calc(0.5rem+env(safe-area-inset-top))] shadow-card">
       <button
         type="button"
         aria-label="Voltar"
         // Aberta por notificação ou link, não há para onde voltar no histórico.
         onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/conversas"))}
-        className="flex size-11 shrink-0 items-center justify-center"
+        className="flex size-11 shrink-0 items-center justify-center rounded-full active:bg-muted"
       >
         <ArrowLeft className="size-5" aria-hidden="true" />
       </button>
-      <Avatar name={name} photo={photo} className="size-9" />
-      <div className="min-w-0">
-        <h1 className="truncate font-semibold leading-tight">{name}</h1>
-        {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
+      <Avatar name={name} photo={photo} className="size-10" />
+      <div className="min-w-0 flex-1">
+        <h1 className="truncate text-[0.9375rem] font-semibold leading-tight">{name}</h1>
+        {details?.status && (
+          <p className="truncate text-xs text-muted-foreground">{details.status}</p>
+        )}
       </div>
       {children}
     </header>
+  );
+}
+
+/** Por qual instância a conversa chegou e, para o gestor, com qual operador ela está. */
+function ConversationInfo({ instance, agent }: Pick<HeaderDetails, "instance" | "agent">) {
+  if (!instance && !agent) return null;
+  return (
+    <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-t border-border/60 bg-card px-4 py-2">
+      {instance && (
+        <Chip icon={Smartphone}>
+          <span className="sr-only">Instância: </span>
+          {instance}
+        </Chip>
+      )}
+      {agent && (
+        <Chip
+          icon={agent === NO_AGENT ? UserRoundX : Headset}
+          tone={agent === NO_AGENT ? "warning" : "primary"}
+        >
+          {agent !== NO_AGENT && <span className="sr-only">Operador: </span>}
+          {agent}
+        </Chip>
+      )}
+    </div>
   );
 }
 
@@ -224,7 +270,7 @@ function MessageList({ conversationId, onReply, sentCount }: MessageListProps) {
 
   if (messagesQuery.isPending) {
     return (
-      <p className="min-h-0 flex-1 bg-chat p-6 text-center text-sm text-muted-foreground">
+      <p className="chat-wallpaper min-h-0 flex-1 p-6 text-center text-sm text-muted-foreground">
         Carregando…
       </p>
     );
@@ -242,14 +288,14 @@ function MessageList({ conversationId, onReply, sentCount }: MessageListProps) {
   }
   if (!items.length) {
     return (
-      <p className="min-h-0 flex-1 bg-chat p-6 text-center text-sm text-muted-foreground">
+      <p className="chat-wallpaper min-h-0 flex-1 p-6 text-center text-sm text-muted-foreground">
         Nenhuma mensagem ainda.
       </p>
     );
   }
 
   return (
-    <div className="relative min-h-0 flex-1 bg-chat" role="log" aria-label="Mensagens">
+    <div className="chat-wallpaper relative min-h-0 flex-1" role="log" aria-label="Mensagens">
       <Virtuoso
         ref={list}
         className="h-full"
@@ -267,10 +313,12 @@ function MessageList({ conversationId, onReply, sentCount }: MessageListProps) {
             ? pending.find((entry) => entry.clientId === clientIdOf(item))
             : undefined;
           return (
-            <div className="px-3 py-1">
+            <div className="px-2 py-0.5">
               {(!previous || !isSameDay(previous.created_at, item.created_at)) && (
-                <p className="py-2 text-center text-xs text-muted-foreground">
-                  {formatDayLabel(item.created_at)}
+                <p className="py-2.5 text-center">
+                  <span className="inline-block rounded-full bg-card/90 px-3 py-1 text-[0.6875rem] font-medium text-muted-foreground shadow-card">
+                    {formatDayLabel(item.created_at)}
+                  </span>
                 </p>
               )}
               <MessageBubble
@@ -295,7 +343,7 @@ function MessageList({ conversationId, onReply, sentCount }: MessageListProps) {
           type="button"
           aria-label="Ir para a última mensagem"
           onClick={() => list.current?.scrollToIndex({ index: "LAST", behavior: "smooth" })}
-          className="absolute bottom-3 right-3 flex size-11 items-center justify-center rounded-full border bg-card shadow"
+          className="absolute bottom-3 right-3 flex size-11 items-center justify-center rounded-full bg-card text-primary shadow-float"
         >
           <ArrowDown className="size-5" aria-hidden="true" />
         </button>
@@ -308,6 +356,9 @@ export function ChatPage() {
   const { id = "" } = useParams();
   const queryClient = useQueryClient();
   const detail = useConversationDetail(id);
+  const user = useCurrentUser();
+  const { role } = useWorkspace();
+  const instanceOf = useInstanceLabel();
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [sentCount, setSentCount] = useState(0);
 
@@ -324,26 +375,34 @@ export function ChatPage() {
   if (detail.error instanceof ApiError && detail.error.status === 404) return <Unavailable />;
   const conversation = detail.data;
   const name = conversation ? conversationName(conversation) : "Conversa";
-  const subtitle = conversation
-    ? [STATUS_LABEL[conversation.status ?? ""], conversation.agent_name].filter(Boolean).join(" · ")
+  // Gestor e admin veem com qual operador a conversa está; o operador só vê quando ela é de outra pessoa.
+  const showAgent =
+    conversation &&
+    !conversation.is_group &&
+    (isManagerRole(role) || conversation.assigned_agent_id !== user.id);
+  const details: HeaderDetails | undefined = conversation
+    ? {
+        status: STATUS_LABEL[conversation.status ?? ""],
+        instance: instanceOf(conversation),
+        agent: showAgent
+          ? (conversation.agent_name ?? (isManagerRole(role) ? NO_AGENT : null))
+          : null,
+      }
     : undefined;
 
   return (
     <div className="flex h-full flex-col">
-      <ChatHeader
-        name={name}
-        subtitle={subtitle}
-        photo={conversation?.participant_photo_storage_url}
-      >
+      <ChatHeader name={name} details={details} photo={conversation?.participant_photo_storage_url}>
         {conversation?.lead_id && <LeadInfoButton leadId={conversation.lead_id} />}
         {conversation && <ChatActions conversation={conversation} />}
       </ChatHeader>
+      {details && <ConversationInfo instance={details.instance} agent={details.agent} />}
       {conversation?.lead_id && !conversation.is_group && (
         <FunnelBar leadId={conversation.lead_id} />
       )}
       <MessageList key={id} conversationId={id} onReply={setReplyTo} sentCount={sentCount} />
       {conversation && (
-        <div className="shrink-0 border-t bg-card pb-[env(safe-area-inset-bottom)]">
+        <div className="shrink-0 bg-chat pb-[env(safe-area-inset-bottom)]">
           <Composer
             key={id}
             conversation={conversation}

@@ -1,12 +1,13 @@
-import { Eye, EyeOff } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { Eye, EyeOff, KeyRound, LockKeyhole, Mail, ShieldCheck, Stethoscope } from "lucide-react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { authApi, isMfaChallenge, type MfaChallenge } from "@/api/auth";
 import { ApiError } from "@/api/client";
-import { BrandScreen } from "@/ui/brand";
+import { BRAND_BUTTON, BRAND_INPUT, BrandCard, BrandScreen } from "@/ui/brand";
 import { Button } from "@/ui/button";
 import { ErrorText } from "@/ui/feedback";
 import { Field } from "@/ui/field";
+import { cn } from "@/lib/utils";
 import { useAuth } from "./AuthProvider";
 
 const messageOf = (error: unknown) =>
@@ -26,25 +27,38 @@ export function LoginPage() {
 
   return (
     <BrandScreen>
-      {step.name === "password" && (
-        <PasswordStep
-          email={email}
-          onEmail={setEmail}
-          notice={step.notice}
-          onChallenge={(challenge) => setStep({ name: "mfa", challenge })}
-          onForgot={() => setStep({ name: "forgot" })}
-        />
-      )}
-      {step.name === "mfa" && (
-        <MfaStep
-          challenge={step.challenge}
-          onExpired={(notice) => setStep({ name: "password", notice })}
-          onBack={() => setStep({ name: "password" })}
-        />
-      )}
-      {step.name === "forgot" && (
-        <ForgotStep email={email} onEmail={setEmail} onBack={() => setStep({ name: "password" })} />
-      )}
+      <BrandCard>
+        {step.name === "password" && (
+          <PasswordStep
+            email={email}
+            onEmail={setEmail}
+            notice={step.notice}
+            onChallenge={(challenge) => setStep({ name: "mfa", challenge })}
+            onForgot={() => setStep({ name: "forgot" })}
+          />
+        )}
+        {step.name === "mfa" && (
+          <MfaStep
+            challenge={step.challenge}
+            onExpired={(notice) => setStep({ name: "password", notice })}
+            onBack={() => setStep({ name: "password" })}
+          />
+        )}
+        {step.name === "forgot" && (
+          <ForgotStep
+            email={email}
+            onEmail={setEmail}
+            onBack={() => setStep({ name: "password" })}
+          />
+        )}
+      </BrandCard>
+      <Link
+        to="/diagnostico"
+        className="mx-auto -mt-2 flex min-h-11 items-center gap-2 text-sm text-white/60 active:text-white"
+      >
+        <Stethoscope className="size-4" aria-hidden="true" />
+        Testar este aparelho
+      </Link>
     </BrandScreen>
   );
 }
@@ -55,6 +69,28 @@ interface PasswordStepProps {
   notice?: string;
   onChallenge: (challenge: MfaChallenge) => void;
   onForgot: () => void;
+}
+
+function StepTitle({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon?: typeof Mail;
+  title: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="mb-5 space-y-1 text-center">
+      {Icon && (
+        <span className="mx-auto mb-3 flex size-11 items-center justify-center rounded-2xl bg-[#5b93ff]/15 text-[#8fb4ff]">
+          <Icon className="size-5" aria-hidden="true" />
+        </span>
+      )}
+      <h1 className="text-xl font-semibold tracking-tight text-white">{title}</h1>
+      {children && <p className="text-sm text-white/65">{children}</p>}
+    </div>
+  );
 }
 
 function PasswordStep({ email, onEmail, notice, onChallenge, onForgot }: PasswordStepProps) {
@@ -80,46 +116,57 @@ function PasswordStep({ email, onEmail, notice, onChallenge, onForgot }: Passwor
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4">
-      <Field
-        label="E-mail"
-        type="email"
-        autoComplete="username"
-        inputMode="email"
-        autoCapitalize="none"
-        required
-        value={email}
-        onChange={(event) => onEmail(event.target.value)}
-      />
-      <Field
-        label="Senha"
-        type={showPassword ? "text" : "password"}
-        autoComplete="current-password"
-        required
-        value={password}
-        onChange={(event) => setPassword(event.target.value)}
-        trailing={
-          <button
-            type="button"
-            className="flex size-11 items-center justify-center text-muted-foreground"
-            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-            onClick={() => setShowPassword((value) => !value)}
-          >
-            {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
-          </button>
-        }
-      />
-      <ErrorText>{error}</ErrorText>
-      <Button type="submit" block loading={busy}>
-        Entrar
-      </Button>
-      <div className="flex items-center justify-between text-sm">
-        <button type="button" className="min-h-11 text-primary" onClick={onForgot}>
-          Esqueci a senha
-        </button>
-        <Link to="/diagnostico" className="flex min-h-11 items-center text-muted-foreground">
-          Testar este aparelho
-        </Link>
+    <form onSubmit={submit}>
+      <StepTitle title="Bem-vindo de volta">Entre com sua conta para atender.</StepTitle>
+      <div className="space-y-4">
+        <Field
+          label="E-mail"
+          type="email"
+          autoComplete="username"
+          inputMode="email"
+          autoCapitalize="none"
+          placeholder="voce@empresa.com"
+          required
+          leading={<Mail />}
+          className={BRAND_INPUT}
+          value={email}
+          onChange={(event) => onEmail(event.target.value)}
+        />
+        <div className="space-y-1">
+          <Field
+            label="Senha"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            leading={<LockKeyhole />}
+            className={BRAND_INPUT}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            trailing={
+              <button
+                type="button"
+                className="flex size-11 items-center justify-center text-white/60 active:text-white"
+                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                onClick={() => setShowPassword((value) => !value)}
+              >
+                {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+              </button>
+            }
+          />
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className="min-h-11 text-sm font-medium text-[#8fb4ff] active:text-white"
+              onClick={onForgot}
+            >
+              Esqueci a senha
+            </button>
+          </div>
+        </div>
+        <ErrorText className="rounded-xl bg-destructive/10 px-3 py-2">{error}</ErrorText>
+        <Button type="submit" block loading={busy} className={BRAND_BUTTON}>
+          Entrar
+        </Button>
       </div>
     </form>
   );
@@ -175,11 +222,13 @@ function MfaStep({ challenge, onExpired, onBack }: MfaStepProps) {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <p className="text-center text-sm text-muted-foreground">
+      <StepTitle icon={ShieldCheck} title="Confirme que é você">
         Enviamos um código para {challenge.email_hint}.
-      </p>
+      </StepTitle>
       <Field
         label="Código"
+        leading={<KeyRound />}
+        className={cn(BRAND_INPUT, "tracking-[0.3em]")}
         inputMode="numeric"
         autoComplete="one-time-code"
         required
@@ -188,16 +237,16 @@ function MfaStep({ challenge, onExpired, onBack }: MfaStepProps) {
         onChange={(event) => setCode(event.target.value)}
       />
       <ErrorText>{error}</ErrorText>
-      <Button type="submit" block loading={busy}>
+      <Button type="submit" block loading={busy} className={BRAND_BUTTON}>
         Confirmar
       </Button>
       <div className="flex items-center justify-between text-sm">
-        <button type="button" className="min-h-11 text-muted-foreground" onClick={onBack}>
+        <button type="button" className="min-h-11 text-white/60" onClick={onBack}>
           Voltar
         </button>
         <button
           type="button"
-          className="min-h-11 text-primary disabled:text-muted-foreground"
+          className="min-h-11 font-medium text-[#8fb4ff] disabled:text-white/40"
           disabled={resendIn > 0}
           onClick={resend}
         >
@@ -236,9 +285,9 @@ function ForgotStep({ email, onEmail, onBack }: ForgotStepProps) {
   if (sent) {
     return (
       <div className="space-y-4 text-center">
-        <p className="text-sm">
+        <StepTitle icon={Mail} title="Confira seu e-mail">
           Se esse e-mail tiver conta, você vai receber o link para criar uma nova senha.
-        </p>
+        </StepTitle>
         <Button block variant="secondary" onClick={onBack}>
           Voltar para o login
         </Button>
@@ -248,18 +297,24 @@ function ForgotStep({ email, onEmail, onBack }: ForgotStepProps) {
 
   return (
     <form onSubmit={submit} className="space-y-4">
+      <StepTitle icon={KeyRound} title="Recuperar senha">
+        Informe seu e-mail e enviaremos um link para criar uma nova senha.
+      </StepTitle>
       <Field
         label="E-mail"
         type="email"
         autoComplete="username"
         inputMode="email"
         autoCapitalize="none"
+        placeholder="voce@empresa.com"
         required
+        leading={<Mail />}
+        className={BRAND_INPUT}
         value={email}
         onChange={(event) => onEmail(event.target.value)}
       />
       <ErrorText>{error}</ErrorText>
-      <Button type="submit" block loading={busy}>
+      <Button type="submit" block loading={busy} className={BRAND_BUTTON}>
         Enviar link
       </Button>
       <Button block variant="ghost" onClick={onBack}>

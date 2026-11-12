@@ -1,5 +1,13 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { CloudOff, MessageCircle, Search, UsersRound } from "lucide-react";
+import {
+  CloudOff,
+  Headset,
+  MessageCircle,
+  Search,
+  Smartphone,
+  UserRoundX,
+  UsersRound,
+} from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ApiError } from "@/api/client";
@@ -11,8 +19,10 @@ import { isManagerRole } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/ui/avatar";
 import { Button } from "@/ui/button";
+import { Chip } from "@/ui/chip";
 import { EmptyState } from "@/ui/feedback";
-import { conversationName, STATUS_LABEL, tabsFor } from "./tabs";
+import { useInstanceLabel } from "./instances";
+import { conversationName, STATUS_LABEL, STATUS_TONE, tabsFor } from "./tabs";
 import { useConversationEvents } from "./useConversationEvents";
 
 /** Posição da lista por aba, para voltar do chat no mesmo lugar. Some ao fechar o app. */
@@ -21,49 +31,89 @@ const scrollByTab = new Map<string, number>();
 function ConversationRow({
   conversation,
   showOwner,
+  instance,
 }: {
   conversation: Conversation;
   showOwner: boolean;
+  instance: string | null;
 }) {
   const name = conversationName(conversation);
   const unread = conversation.unread_count ?? 0;
-  const details = showOwner
-    ? [
-        STATUS_LABEL[conversation.status ?? ""],
-        conversation.is_group ? null : (conversation.agent_name ?? "Sem operador"),
-      ]
-        .filter(Boolean)
-        .join(" · ")
-    : "";
+  const status = conversation.status ?? "";
+  const owner = conversation.is_group ? null : conversation.agent_name;
   return (
     <li>
       <Link
         to={`/conversas/${conversation.id}`}
-        className="flex min-h-[4.5rem] items-center gap-3 px-4 py-2.5 active:bg-muted"
+        className="flex items-start gap-3 px-4 py-3 active:bg-muted"
       >
-        <Avatar name={name} photo={conversation.participant_photo_storage_url} />
+        <span className="relative mt-0.5">
+          <Avatar name={name} photo={conversation.participant_photo_storage_url} />
+          {conversation.is_group && (
+            <span className="absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground">
+              <UsersRound className="size-2.5" aria-hidden="true" />
+            </span>
+          )}
+        </span>
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline gap-2">
-            <span className={cn("min-w-0 flex-1 truncate", unread > 0 && "font-semibold")}>
+            <span
+              className={cn(
+                "min-w-0 flex-1 truncate text-[0.9375rem]",
+                unread > 0 ? "font-semibold" : "font-medium"
+              )}
+            >
               {name}
             </span>
-            <span className="shrink-0 text-xs text-muted-foreground">
+            <span
+              className={cn(
+                "shrink-0 text-xs",
+                unread > 0 ? "font-semibold text-primary" : "text-muted-foreground"
+              )}
+            >
               {formatListTime(conversation.last_message_at)}
             </span>
           </span>
-          <span className="flex items-center gap-2">
-            <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+          <span className="mt-0.5 flex items-center gap-2">
+            <span
+              className={cn(
+                "min-w-0 flex-1 truncate text-sm",
+                unread > 0 ? "text-foreground" : "text-muted-foreground"
+              )}
+            >
               {conversation.last_message || "Sem mensagens"}
             </span>
             {unread > 0 && (
-              <span className="flex min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground">
+              <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[0.6875rem] font-semibold text-primary-foreground">
                 <span className="sr-only">Não lidas: </span>
                 {unread}
               </span>
             )}
           </span>
-          {details && (
-            <span className="block truncate text-xs text-muted-foreground">{details}</span>
+          {(instance || showOwner) && (
+            <span className="mt-1.5 flex flex-wrap items-center gap-1">
+              {showOwner && STATUS_LABEL[status] && (
+                <Chip tone={STATUS_TONE[status]}>{STATUS_LABEL[status]}</Chip>
+              )}
+              {instance && (
+                <Chip icon={Smartphone}>
+                  <span className="sr-only">Instância: </span>
+                  {instance}
+                </Chip>
+              )}
+              {showOwner &&
+                !conversation.is_group &&
+                (owner ? (
+                  <Chip icon={Headset} tone="primary">
+                    <span className="sr-only">Operador: </span>
+                    {owner}
+                  </Chip>
+                ) : (
+                  <Chip icon={UserRoundX} tone="warning">
+                    Sem operador
+                  </Chip>
+                ))}
+            </span>
           )}
         </span>
       </Link>
@@ -80,6 +130,7 @@ export function ConversasPage() {
   const [typed, setTyped] = useState("");
   const [search, setSearch] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
+  const instanceOf = useInstanceLabel();
   useConversationEvents();
 
   useEffect(() => {
@@ -117,7 +168,7 @@ export function ConversasPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="shrink-0 space-y-2 border-b bg-card pt-2">
+      <div className="shrink-0 space-y-2.5 bg-card pb-2.5 pt-1 shadow-card">
         <div className="relative px-4">
           <Search
             className="pointer-events-none absolute left-7 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -129,10 +180,14 @@ export function ConversasPage() {
             onChange={(event) => setTyped(event.target.value)}
             placeholder="Buscar por nome ou telefone"
             aria-label="Buscar conversas"
-            className="min-h-11 w-full rounded-md border border-input bg-background pl-9 pr-3"
+            className="min-h-11 w-full rounded-full bg-muted pl-9 pr-4 outline-none placeholder:text-muted-foreground focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
-        <div role="tablist" aria-label="Filas" className="flex gap-1 overflow-x-auto px-2">
+        <div
+          role="tablist"
+          aria-label="Filas"
+          className="flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none]"
+        >
           {tabs.map((tab) => {
             const selected = tab.key === active.key;
             const count = counts.data?.[tab.countKey];
@@ -144,15 +199,22 @@ export function ConversasPage() {
                 aria-selected={selected}
                 onClick={() => setParams({ aba: tab.key }, { replace: true })}
                 className={cn(
-                  "flex min-h-11 shrink-0 items-center gap-1.5 border-b-2 px-3 text-sm",
+                  "flex min-h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm transition-colors",
                   selected
-                    ? "border-primary font-medium text-foreground"
-                    : "border-transparent text-muted-foreground"
+                    ? "bg-primary font-semibold text-primary-foreground"
+                    : "bg-muted font-medium text-muted-foreground active:bg-secondary"
                 )}
               >
                 {tab.label}
                 {count !== undefined && count > 0 && (
-                  <span className="text-xs tabular-nums text-muted-foreground">{count}</span>
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 text-[0.6875rem] font-semibold tabular-nums",
+                      selected ? "bg-white/25" : "bg-card text-foreground"
+                    )}
+                  >
+                    {count}
+                  </span>
                 )}
               </button>
             );
@@ -185,12 +247,13 @@ export function ConversasPage() {
           </EmptyState>
         )}
         {conversations.length > 0 && (
-          <ul className="divide-y">
+          <ul className="mt-2 divide-y divide-border/70 bg-card">
             {conversations.map((conversation) => (
               <ConversationRow
                 key={conversation.id}
                 conversation={conversation}
                 showOwner={isManagerRole(role)}
+                instance={instanceOf(conversation)}
               />
             ))}
           </ul>

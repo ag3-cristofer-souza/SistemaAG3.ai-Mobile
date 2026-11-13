@@ -565,6 +565,165 @@ test("gestor vê os números do momento em Dashboards", async ({ page }) => {
   await expect(page.getByText(/Atualizado há/)).toBeVisible();
 });
 
+const CANAL = {
+  number: null,
+  status: "connected",
+  connected: true,
+  provider: "zapi",
+  owner: "Olga Online",
+  team: [],
+  ai_assistant: null,
+  pending: 0,
+  unassigned: 0,
+  last_message_at: new Date().toISOString(),
+  sync_error: false,
+  number_changed_at: null,
+  previous_number: null,
+  meta: null,
+};
+
+test("canais em duas guias, e o canal abre com os alertas", async ({ page }) => {
+  await mockBackend(page, {
+    role: "manager",
+    live: {
+      ...LIVE,
+      channels: {
+        ...LIVE.channels,
+        items: [
+          {
+            ...CANAL,
+            id: "i1",
+            name: "Canal Vendas",
+            status: "disconnected",
+            connected: false,
+            unassigned: 2,
+            pending: 3,
+          },
+          { ...CANAL, id: "i2", name: "Canal Suporte" },
+          {
+            ...CANAL,
+            id: "i3",
+            name: "Canal Meta",
+            provider: "meta",
+            number: "5511933334444",
+            meta: {
+              mode: "api_only",
+              keepalive_status: "healthy",
+              last_keepalive_at: null,
+              quality: "GREEN",
+              messaging_limit: "TIER_1K",
+              situacao: "bloqueada",
+              problemas: [
+                {
+                  codigo: 141006,
+                  titulo: "Erro no meio de pagamento",
+                  acao: "Troque o cartão.",
+                  gravidade: "bloqueada",
+                },
+              ],
+              checked_at: new Date().toISOString(),
+            },
+          },
+        ],
+      },
+    },
+  });
+  await passInstallGate(page);
+  await login(page);
+  await page.getByRole("link", { name: "Dashboards" }).click();
+
+  const desconectados = page.getByRole("tab", { name: /Desconectados/ });
+  await expect(desconectados).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("button", { name: /Canal Vendas/ })).toContainText(
+    "2 conversas sem operador neste canal"
+  );
+  await expect(page.getByRole("button", { name: /Canal Suporte/ })).toHaveCount(0);
+
+  await page.getByRole("tab", { name: /Conectados/ }).click();
+  await expect(page.getByRole("button", { name: /Canal Suporte/ })).toContainText("Sem alertas");
+  await page.getByRole("button", { name: /Canal Meta/ }).click();
+
+  const detalhe = page.getByRole("dialog", { name: "Detalhes do canal" });
+  const alertas = detalhe.getByRole("list", { name: "Alertas" });
+  await expect(alertas).toContainText("Envio bloqueado pela Meta");
+  await expect(alertas).toContainText("Erro no meio de pagamento (141006)");
+  await expect(alertas).toContainText("Troque o cartão.");
+  await expect(detalhe).toContainText("1 mil conversas por dia");
+  await expect(detalhe).toContainText("Meta (API oficial)");
+  await page.keyboard.press("Escape");
+  await expect(detalhe).toBeHidden();
+});
+
+test("fila parada há mais de 7 dias ganha aviso, e os canais dizem de quantos", async ({
+  page,
+}) => {
+  await mockBackend(page, {
+    role: "manager",
+    live: { ...LIVE, queue: { ...LIVE.queue, oldest_wait_seconds: 8 * 24 * 3600 } },
+  });
+  await passInstallGate(page);
+  await login(page);
+  await page.getByRole("link", { name: "Dashboards" }).click();
+  await expect(page.getByText("Maior espera: 8 d")).toBeVisible();
+  await expect(page.getByRole("group", { name: "Aguardando aceite" })).toContainText("2");
+  await expect(page.getByText("Têm operador, falta aceitar")).toBeVisible();
+  await expect(page.getByText("paradas na fila há mais de 7 dias")).toBeVisible();
+  await expect(page.getByText("Canais: 2 de 3 conectados")).toBeVisible();
+  await expect(page.getByText("5 de 5 aguardando aceite")).toBeVisible();
+});
+
+test("tocar no operador abre o detalhe com alertas e os números dele no período", async ({
+  page,
+}) => {
+  const [otto, olga] = LIVE.operators;
+  await mockBackend(page, {
+    role: "manager",
+    live: {
+      ...LIVE,
+      operators: [
+        {
+          ...otto,
+          active: 299,
+          limit: 5,
+          oldest_active_seconds: 70 * 24 * 3600,
+          last_seen_at: new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString(),
+        },
+        { ...olga, oldest_active_seconds: 60, last_seen_at: new Date().toISOString() },
+      ],
+    },
+  });
+  const agents: Array<string | null> = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.pathname === "/dashboard/overview") agents.push(url.searchParams.get("agent_id"));
+  });
+  await passInstallGate(page);
+  await login(page);
+  await page.getByRole("link", { name: "Dashboards" }).click();
+
+  await expect(page.getByText("A mais antiga espera há 70 d")).toBeVisible();
+  await page.getByRole("button", { name: "Ver detalhes de Otto Offline" }).click();
+
+  const detalhe = page.getByRole("dialog", { name: "Detalhes do operador" });
+  await expect(detalhe).toContainText("Offline, visto há 10 d");
+  const alertas = detalhe.getByRole("list", { name: "Alertas" });
+  await expect(alertas).toContainText("A mais antiga espera o aceite há 70 d");
+  await expect(alertas).toContainText("No limite de conversas");
+  await expect(alertas).toContainText("Offline com 299 conversas esperando o aceite");
+  await expect(alertas).toContainText("Sem acessar há 10 dias");
+  await expect(
+    detalhe.getByRole("region", { name: "Resultados de Otto Offline no período" })
+  ).toBeVisible();
+  expect(agents).toContain("o1");
+  await page.keyboard.press("Escape");
+  await expect(detalhe).toBeHidden();
+
+  await page.getByRole("button", { name: "Ver detalhes de Olga Online" }).click();
+  await expect(detalhe).toContainText("Online no App e Painel");
+  await expect(detalhe).toContainText("No limite de conversas");
+  await expect.poll(() => agents.at(-1)).toBe("o2");
+});
+
 test("operador vê as abas dele e a API recebe o filtro de cada uma", async ({ page }) => {
   await mockBackend(page, { conversations: [CONV] });
   const requests: URLSearchParams[] = [];

@@ -1,19 +1,22 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bot, CloudOff, Headset, PauseCircle, Radio, Unplug, type LucideIcon } from "lucide-react";
+import { Bot, CloudOff, Headset, PauseCircle, TriangleAlert, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ApiError } from "@/api/client";
-import { dashboardApi, type LiveOperator } from "@/api/dashboard";
+import { dashboardApi } from "@/api/dashboard";
 import { formatDuration, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { realtime, useRealtimeState } from "@/realtime";
-import { Avatar } from "@/ui/avatar";
 import { Button } from "@/ui/button";
 import { EmptyState, FullScreenLoader } from "@/ui/feedback";
+import { ChannelsCard } from "./ChannelsCard";
+import { TeamCard } from "./TeamCard";
 
 const QUERY_KEY = ["dashboard-live"];
 const MIN_REFRESH_MS = 15_000;
 const POLL_ONLINE_MS = 60_000;
 const POLL_OFFLINE_MS = 30_000;
+/** Espera acima disto já não é fila do dia: é conversa esquecida. */
+const STALE_QUEUE_S = 7 * 24 * 3600;
 
 /** Evento de conversa vira nova busca, no máximo a cada 15 s. Com a tela fechada, não busca. */
 function useLiveDashboard() {
@@ -79,61 +82,24 @@ function Tile({
   );
 }
 
-const SYSTEM_LABEL: Record<string, string> = { mobile: "App", painel: "Painel" };
-
-function OperatorRow({ operator }: { operator: LiveOperator }) {
-  const { active, limit } = operator;
-  const atLimit = limit !== null && limit > 0 && active >= limit;
-  const percent = limit ? Math.min(100, (active / limit) * 100) : 0;
-  const presence = operator.online
-    ? operator.systems.map((system) => SYSTEM_LABEL[system] ?? system).join(" e ")
-    : "Offline";
+/** Um dos dois números da fila: rótulo, valor grande e uma linha dizendo o que ele conta. */
+function QueueBox({
+  label,
+  value,
+  caption,
+  tone,
+}: {
+  label: string;
+  value: number;
+  caption: string;
+  tone: string;
+}) {
   return (
-    <li className="flex gap-3 px-4 py-3">
-      <span className="relative h-fit">
-        <Avatar name={operator.name} className="size-10" />
-        <span
-          aria-hidden="true"
-          className={cn(
-            "absolute bottom-0 right-0 size-3 rounded-full border-2 border-card",
-            operator.online ? "bg-success" : "bg-muted-foreground/40"
-          )}
-        />
-      </span>
-      <div className="min-w-0 flex-1 space-y-1.5">
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="min-w-0 truncate font-semibold">{operator.name}</span>
-          <span
-            className={cn(
-              "shrink-0 text-xs font-medium",
-              operator.online ? "text-success" : "text-muted-foreground"
-            )}
-          >
-            {presence}
-          </span>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          {limit !== null ? `${active} de ${limit} na fila` : `${active} na fila`} ·{" "}
-          {operator.in_attendance} em atendimento · {operator.on_hold} em espera
-          {atLimit && <span className="font-semibold text-warning"> · No limite</span>}
-        </p>
-        {limit !== null && limit > 0 && (
-          <div
-            role="meter"
-            aria-label={`Fila de ${operator.name}`}
-            aria-valuemin={0}
-            aria-valuemax={limit}
-            aria-valuenow={Math.min(active, limit)}
-            className="h-1.5 overflow-hidden rounded-full bg-muted"
-          >
-            <div
-              className={cn("h-full rounded-full", atLimit ? "bg-warning" : "bg-primary")}
-              style={{ width: `${percent}%` }}
-            />
-          </div>
-        )}
-      </div>
-    </li>
+    <div role="group" aria-label={label} className="rounded-xl bg-card p-3.5">
+      <p className="text-xs font-semibold text-muted-foreground">{label}</p>
+      <p className={cn("mt-1 text-3xl font-bold tabular-nums tracking-tight", tone)}>{value}</p>
+      <p className="mt-1.5 text-xs leading-snug text-muted-foreground">{caption}</p>
+    </div>
   );
 }
 
@@ -157,20 +123,35 @@ export function AgoraPage() {
   const age = Math.max(0, (now - query.dataUpdatedAt) / 1000);
   const waiting = queue.oldest_wait_seconds === null ? null : queue.oldest_wait_seconds + age;
   const assignedWaiting = queue.pending - queue.unassigned;
-  const online = operators.filter((operator) => operator.online).length;
-  const ordered = [...operators].sort(
-    (a, b) => Number(b.online) - Number(a.online) || a.name.localeCompare(b.name, "pt-BR")
-  );
 
   return (
     <div className="space-y-4 p-4">
-      <section className="brand-gradient rounded-2xl p-5 shadow-float">
-        <p className="text-sm font-medium text-white/80">Fila sem dono</p>
-        <p className="mt-1 text-5xl font-bold tabular-nums tracking-tight">{queue.unassigned}</p>
-        <p className="mt-2 text-sm text-white/85">
-          {waiting === null ? "Ninguém esperando" : `Maior espera: ${formatDuration(waiting)}`}
-          {assignedWaiting > 0 && ` · ${assignedWaiting} aguardando aceite`}
-        </p>
+      <section className="brand-soft rounded-2xl p-3 shadow-card" aria-label="Fila agora">
+        <div className="grid grid-cols-2 gap-2.5">
+          <QueueBox
+            label="Fila sem dono"
+            value={queue.unassigned}
+            caption={
+              waiting === null ? "Ninguém esperando" : `Maior espera: ${formatDuration(waiting)}`
+            }
+            tone={queue.unassigned > 0 ? "text-warning" : "text-success"}
+          />
+          <QueueBox
+            label="Aguardando aceite"
+            value={assignedWaiting}
+            caption="Têm operador, falta aceitar"
+            tone="text-primary"
+          />
+        </div>
+        {waiting !== null && waiting > STALE_QUEUE_S && (
+          <p className="mt-2.5 flex gap-2 rounded-xl bg-warning/10 px-3 py-2.5 text-xs leading-relaxed text-foreground">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+            <span>
+              Há conversas paradas na fila há mais de 7 dias. Enquanto não forem finalizadas no
+              painel, elas contam aqui como se ainda esperassem atendimento.
+            </span>
+          </p>
+        )}
       </section>
 
       <section className="grid grid-cols-3 gap-2.5" aria-label="Atendimentos">
@@ -194,42 +175,9 @@ export function AgoraPage() {
         />
       </section>
 
-      <section className="surface overflow-hidden">
-        <h2 className="flex items-center gap-2 px-4 pt-3.5 text-sm font-semibold">
-          <Radio className="size-4 text-primary" aria-hidden="true" />
-          Canais: {channels.connected} conectado{channels.connected === 1 ? "" : "s"}
-        </h2>
-        {channels.disconnected.length === 0 ? (
-          <p className="px-4 pb-3.5 pt-2 text-sm text-muted-foreground">
-            Nenhum canal desconectado.
-          </p>
-        ) : (
-          <ul className="mt-2 divide-y divide-border/70">
-            {channels.disconnected.map((channel) => (
-              <li key={channel.id} className="flex items-center gap-3 px-4 py-3">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
-                  <Unplug className="size-4" aria-hidden="true" />
-                </span>
-                <span className="min-w-0 flex-1 truncate font-medium">{channel.name}</span>
-                <span className="shrink-0 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
-                  Desconectado
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <ChannelsCard channels={channels} now={now} />
 
-      <section className="surface overflow-hidden">
-        <h2 className="px-4 pt-3.5 text-sm font-semibold">
-          Equipe: {online} online de {operators.length}
-        </h2>
-        <ul className="mt-1 divide-y divide-border/70">
-          {ordered.map((operator) => (
-            <OperatorRow key={operator.user_id} operator={operator} />
-          ))}
-        </ul>
-      </section>
+      <TeamCard operators={operators} now={now} age={age} />
 
       <p className="text-center text-xs text-muted-foreground" role="status">
         {query.isError

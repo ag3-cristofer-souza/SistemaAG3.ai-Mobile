@@ -143,8 +143,15 @@ const days = (range: DateRange) => ({ start_date: range.start, end_date: range.e
 
 export const metricsApi = {
   /** Instantes completos: é como o painel pede, e o servidor guarda em cache por essa chave. */
-  overview: async (range: DateRange): Promise<Overview> =>
-    (await api.get("/dashboard/overview", overviewSchema, days(range))).data,
+  overview: async (range: DateRange, agentId?: string): Promise<Overview> =>
+    (
+      await api.get(
+        "/dashboard/overview",
+        overviewSchema,
+        // `agent_id`: o mesmo filtro de operador do painel. O servidor só aceita de gestor e admin.
+        agentId ? { ...days(range), agent_id: agentId } : days(range)
+      )
+    ).data,
   /** Os relatórios trabalham com dias locais da empresa. */
   marketing: async (range: DateRange): Promise<Marketing> =>
     (await api.get("/reports/marketing/visao", marketingSchema, days(range))).data,

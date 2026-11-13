@@ -387,12 +387,26 @@ devolve a mensagem já criada, sem novo envio ao provedor. Não exige migration.
 Pedido do Daniel: telas mais bonitas e, em cada conversa, a instância e, para gestor e admin, o operador.
 
 - **Visual:** a decisão D7 continua (app claro, azul-marinho só na abertura, no login e em destaques). Agora há cartões brancos com sombra
-  leve (`.surface`), etiquetas (`ui/chip.tsx`), avatar com cor fixa por nome, filas e seções em pílulas, barra inferior com o item ativo
-  destacado, chat com fundo pontilhado e balões com ponta, destaque da fila e do perfil no azul da marca (`.brand-gradient`) e indicadores
+  leve (`.surface`), etiquetas (`ui/chip.tsx`), avatar com cor fixa por nome, filas e seções em pílulas, barra inferior flutuante de vidro claro
+  (`.nav-dock`; item ativo com ícone azul aceso e traço de luz na borda), chat com fundo pontilhado e balões com ponta, destaque da fila e do perfil em cartão claro
+  com véu azul (`.brand-soft`; o app fica claro, D7) e indicadores
   com ícone.
 - **Instância:** o nome vem de `GET /instances`, a mesma rota e o mesmo `display_name` do painel, buscada a cada 10 min. A conversa é
   ligada pelo `connected_instance_id` ou, nas antigas, pelo número. Se o servidor não listar a instância para esta pessoa, aparece o
   número do canal. Não houve mudança no backend.
+- **Fila no Agora:** dois números lado a lado, "Fila sem dono" (com a maior espera) e "Aguardando aceite" (têm operador,
+  falta aceitar), em vez de uma frase "Além delas…" que não fazia sentido com a fila zerada.
+- **Canais no Agora (13/11, com backend):** duas guias, desconectados e conectados. Tocar num canal abre "Detalhes do canal"
+  com os alertas (`features/gestor/channels.ts`), a fila do canal, a última mensagem, os responsáveis, a IA e, na Meta,
+  envio, qualidade, limite e modo. Os dados vêm de `channels.items` do `/dashboard/live` (adendo ht do backend). Sem
+  esse campo, o app mostra a lista antiga de desconectados. Ordem de subida: backend, depois app.
+- **Equipe no Agora (13/11, com backend):** tocar no operador abre "Detalhes do operador" com:
+  - os alertas (`features/gestor/team.ts`);
+  - a fila dele agora, a espera da mais antiga, o último acesso e onde está conectado;
+  - os mesmos números de "Meus números" no período (`PeriodResults`), pelo `/dashboard/overview?agent_id=`.
+
+  Na lista, "A mais antiga espera há …" aparece a partir de 1 dia (laranja) e fica vermelho a partir de 7. Campos novos no `/dashboard/live`:
+  `oldest_active_seconds` e `last_seen_at` (adendo ht do backend).
 - **Operador:** gestor e admin veem com quem a conversa está, ou "Sem operador", na lista e no chat. O operador só vê o nome quando a
   conversa é de outra pessoa.
 

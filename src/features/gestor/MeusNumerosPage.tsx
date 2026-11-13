@@ -1,23 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-  Headset,
-  Hourglass,
-  Inbox,
-  MessageCircleWarning,
-  MessagesSquare,
-  PauseCircle,
-  Percent,
-  Target,
-  Trophy,
-  UsersRound,
-} from "lucide-react";
+import { Headset, Inbox, PauseCircle, UsersRound } from "lucide-react";
 import { useState } from "react";
 import { conversationsApi } from "@/api/conversations";
-import { formatDuration } from "@/lib/format";
 import { StatGrid, StatTile, Loading, SectionError } from "./charts";
 import { PeriodPicker } from "./PeriodPicker";
+import { PeriodResults } from "./PeriodResults";
 import { useOverview } from "./useOverview";
-import { formatInt, formatPercent, type PeriodKey } from "./period";
+import { formatInt, type PeriodKey } from "./period";
 
 /**
  * Indicadores do operador, para ajudar no dia a dia. O servidor limita tudo aos números dele: `scope()` ignora qualquer filtro
@@ -72,44 +61,7 @@ export function MeusNumerosPage() {
         <SectionError error={overview.error} onRetry={() => void overview.refetch()} />
       )}
       {overview.data && (
-        <StatGrid label="Seus resultados no período">
-          <StatTile
-            icon={MessagesSquare}
-            tone="primary"
-            label="Atendimentos novos"
-            value={formatInt(overview.data.attendance?.new_attendances ?? 0)}
-          />
-          <StatTile
-            icon={Hourglass}
-            tone="warning"
-            label="Espera média"
-            value={formatDuration(overview.data.attendance?.avg_waiting_time_seconds ?? 0)}
-          />
-          <StatTile
-            icon={Trophy}
-            tone="success"
-            label="Convertidos"
-            value={formatInt(overview.data.commercial.executiveSummary.conversionsInPeriod)}
-          />
-          <StatTile
-            icon={Percent}
-            tone="violet"
-            label="Taxa de conversão"
-            value={formatPercent(overview.data.commercial.executiveSummary.conversionRatePercent)}
-          />
-          <StatTile
-            icon={MessageCircleWarning}
-            tone="warning"
-            label="A responder"
-            value={formatInt(overview.data.zap.summary.aResponder)}
-          />
-          <StatTile
-            icon={Target}
-            tone="success"
-            label="Efetividade"
-            value={formatPercent(overview.data.zap.summary.efetividade)}
-          />
-        </StatGrid>
+        <PeriodResults overview={overview.data} label="Seus resultados no período" />
       )}
     </div>
   );

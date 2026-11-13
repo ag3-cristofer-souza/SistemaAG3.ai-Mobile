@@ -120,37 +120,38 @@ export function AppShell() {
         <Outlet />
       </main>
 
-      <nav
-        aria-label="Principal"
-        className="flex shrink-0 border-t bg-card px-1 pb-[env(safe-area-inset-bottom)]"
-      >
-        {navItemsFor(role).map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              cn(
-                "group flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[0.6875rem]",
-                isActive ? "font-semibold text-foreground" : "text-muted-foreground"
-              )
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <span
-                  className={cn(
-                    "flex h-8 w-14 items-center justify-center rounded-full transition-colors",
-                    isActive ? "bg-secondary text-primary" : ""
-                  )}
-                >
-                  <Icon className="size-5" strokeWidth={isActive ? 2.4 : 2} aria-hidden="true" />
-                </span>
-                {label}
-              </>
-            )}
-          </NavLink>
-        ))}
-      </nav>
+      {/* Barra flutuante de vidro claro: o item ativo acende em azul, com o traço luminoso no alto. */}
+      <div className="shrink-0 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2">
+        <nav aria-label="Principal" className="nav-dock flex rounded-[1.75rem] p-1.5">
+          {navItemsFor(role).map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                cn(
+                  "relative flex min-h-14 flex-1 flex-col items-center justify-center gap-1 rounded-[1.375rem] text-[0.6875rem] tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  isActive ? "bg-primary/[0.06] font-semibold text-primary" : "text-muted-foreground active:bg-primary/5"
+                )
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  {isActive && <span className="nav-dock-beam" aria-hidden="true" />}
+                  <span
+                    className={cn(
+                      "flex size-8 items-center justify-center rounded-full transition-all duration-300 motion-reduce:transition-none",
+                      isActive && "nav-dock-orb scale-105"
+                    )}
+                  >
+                    <Icon className="size-[1.125rem]" strokeWidth={isActive ? 2.4 : 2} aria-hidden="true" />
+                  </span>
+                  {label}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+      </div>
     </div>
   );
 }

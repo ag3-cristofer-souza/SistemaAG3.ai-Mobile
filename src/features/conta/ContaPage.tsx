@@ -187,12 +187,12 @@ export function ContaPage() {
 
   return (
     <div className="space-y-4 p-4">
-      <section className="brand-gradient flex items-center gap-4 rounded-2xl p-5 shadow-float">
-        <Avatar name={name} className="size-14 ring-2 ring-white/40" />
+      <section className="brand-soft flex items-center gap-4 rounded-2xl p-5 shadow-card">
+        <Avatar name={name} className="size-14 ring-4 ring-white" />
         <div className="min-w-0">
           <p className="truncate text-lg font-semibold">{name}</p>
-          {user.email && <p className="truncate text-sm text-white/80">{user.email}</p>}
-          <p className="mt-1.5 inline-block rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold">
+          {user.email && <p className="truncate text-sm text-muted-foreground">{user.email}</p>}
+          <p className="mt-1.5 inline-block rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
             {ROLE_LABEL[role]}
           </p>
         </div>

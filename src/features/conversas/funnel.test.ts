@@ -58,6 +58,12 @@ describe("etapas do funil", () => {
     expect(withCurrentStage([{ key: "a", label: "A" }], "a")).toHaveLength(1);
     expect(stageLabel([], null)).toBe("Sem etapa");
   });
+
+  it("status antigo sem coluna aparece com nome, não com a chave", () => {
+    expect(stageLabel([], "new")).toBe("Novo");
+    expect(withCurrentStage([], "new")).toEqual([{ key: "new", label: "Novo" }]);
+    expect(stageLabel([], "outra_coisa")).toBe("outra_coisa");
+  });
 });
 
 describe("card da conversa", () => {

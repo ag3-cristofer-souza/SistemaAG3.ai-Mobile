@@ -1,5 +1,6 @@
 import type { InfiniteData } from "@tanstack/react-query";
 import { apiUrl } from "@/config/runtimeEnv";
+import { isSameDay } from "@/lib/format";
 import type { Message, MessagesPage } from "@/api/conversations";
 
 export type MessagesData = InfiniteData<MessagesPage, unknown>;
@@ -112,4 +113,28 @@ export function safeMediaUrl(url: string | null | undefined): string | null {
   } catch {
     return null;
   }
+}
+
+const isOutgoing = (message: Message) =>
+  message.sender_type === "agent" ||
+  message.sender_type === "system" ||
+  message.direction === "out";
+
+/**
+ * Nome no balão como no WhatsApp: na conversa individual, o contato não precisa de nome; e mensagens seguidas da mesma
+ * pessoa, no mesmo dia, só mostram o nome na primeira.
+ */
+export function shouldShowSender(
+  message: Message,
+  previous: Message | undefined,
+  isGroup: boolean
+): boolean {
+  if (!isGroup && !isOutgoing(message)) return false;
+  if (!previous || !isSameDay(previous.created_at, message.created_at)) return true;
+  if (previous.message_type === "system_handoff") return true;
+  return !(
+    isOutgoing(previous) === isOutgoing(message) &&
+    (previous.sender_type ?? "") === (message.sender_type ?? "") &&
+    (previous.sender_name ?? "") === (message.sender_name ?? "")
+  );
 }

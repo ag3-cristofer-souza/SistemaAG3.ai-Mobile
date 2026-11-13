@@ -19,6 +19,17 @@ const BASE_STAGES: Stage[] = [
   { key: "no_answer", label: "Não Atendeu" },
 ];
 
+/** Status antigos ou vindos de integração que não têm coluna com nome: o mínimo para não mostrar a chave crua. */
+const KNOWN_LABELS: Record<string, string> = {
+  new: "Novo",
+  qualified: "Qualificado",
+  won: "Ganho",
+  open: "Aberto",
+  closed: "Fechado",
+};
+
+const labelOf = (key: string) => KNOWN_LABELS[key] ?? key;
+
 export function isCustomPipeline(pipelineId: string | null | undefined, pipelines: Pipeline[]) {
   const standard = pipelines.find((item) => item.is_default) ?? pipelines[0];
   return Boolean(pipelineId && standard && pipelineId !== standard.id);
@@ -37,7 +48,7 @@ export function buildStages(stages: Stage[], custom: boolean, dynamicStatuses: s
   const known = new Set(columns.map((stage) => stage.key));
   const dynamic = dynamicStatuses
     .filter((status) => !known.has(status) && !HIDDEN.has(status))
-    .map((status) => ({ key: status, label: status }));
+    .map((status) => ({ key: status, label: labelOf(status) }));
   const pending = columns.findIndex((stage) => stage.key === "pending");
   columns.splice(pending + 1, 0, ...dynamic);
   return columns;
@@ -46,11 +57,11 @@ export function buildStages(stages: Stage[], custom: boolean, dynamicStatuses: s
 /** A etapa atual precisa aparecer na lista, mesmo que tenha saído do funil. */
 export function withCurrentStage(stages: Stage[], current: string | null | undefined): Stage[] {
   if (!current || stages.some((stage) => stage.key === current)) return stages;
-  return [...stages, { key: current, label: current }];
+  return [...stages, { key: current, label: labelOf(current) }];
 }
 
 export const stageLabel = (stages: Stage[], key: string | null | undefined) =>
-  stages.find((stage) => stage.key === key)?.label ?? key ?? "Sem etapa";
+  stages.find((stage) => stage.key === key)?.label ?? (key ? labelOf(key) : "Sem etapa");
 
 /**
  * Qual card a conversa mostra. A mesma ordem do painel (`cardFoco.ts`): o aberto dele, o aberto sem dono, o aberto mais recente.

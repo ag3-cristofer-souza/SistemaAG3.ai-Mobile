@@ -35,18 +35,20 @@ import { realtime, type RealtimeChange } from "@/realtime";
 import { Avatar } from "@/ui/avatar";
 import { Button } from "@/ui/button";
 import { Chip } from "@/ui/chip";
+import { PhotoViewer } from "@/ui/photo-viewer";
 import { EmptyState } from "@/ui/feedback";
 import { MessageBubble } from "./MessageBubble";
 import {
   firstItemIndex,
   flattenMessages,
   removeMessage,
+  shouldShowSender,
   upsertMessage,
   type MessagesData,
 } from "./messages";
 import { ChatActions } from "./ChatActions";
 import { Composer } from "./Composer";
-import { FunnelBar, LeadInfoButton } from "./LeadPanels";
+import { FunnelBar, LeadInfoSheet } from "./LeadPanels";
 import { useInstanceLabel } from "./instances";
 import { clientIdOf, isLocalMessage, outbox, pendingBubbles, toLocalMessage } from "./outbox";
 import { conversationName, STATUS_LABEL } from "./tabs";
@@ -163,11 +165,16 @@ function ChatHeader({
   name,
   details,
   photo,
+  onOpen,
+  openLabel,
   children,
 }: {
   name: string;
   details?: HeaderDetails;
   photo?: string | null;
+  /** Toque no nome ou na foto: abre as informações do lead ou, sem lead, a foto. */
+  onOpen?: () => void;
+  openLabel?: string;
   children?: ReactNode;
 }) {
   const navigate = useNavigate();
@@ -182,11 +189,22 @@ function ChatHeader({
       >
         <ArrowLeft className="size-5" aria-hidden="true" />
       </button>
-      <Avatar name={name} photo={photo} className="size-10" />
-      <div className="min-w-0 flex-1">
-        <h1 className="truncate text-[0.9375rem] font-semibold leading-tight">{name}</h1>
-        {details?.status && (
-          <p className="truncate text-xs text-muted-foreground">{details.status}</p>
+      {/* O botão cobre foto e nome por cima: assim o nome continua sendo o título da tela para o leitor de tela. */}
+      <div className="relative flex min-w-0 flex-1 items-center gap-2 rounded-xl py-0.5 pr-1 has-[button:active]:bg-muted">
+        <Avatar name={name} photo={photo} className="size-10" />
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-[0.9375rem] font-semibold leading-tight">{name}</h1>
+          {details?.status && (
+            <p className="truncate text-xs text-muted-foreground">{details.status}</p>
+          )}
+        </div>
+        {onOpen && (
+          <button
+            type="button"
+            aria-label={openLabel}
+            onClick={onOpen}
+            className="absolute inset-0 rounded-xl"
+          />
         )}
       </div>
       {children}
@@ -234,12 +252,13 @@ function Unavailable() {
 
 interface MessageListProps {
   conversationId: string;
+  isGroup: boolean;
   onReply: (message: Message) => void;
   /** Muda a cada envio da própria pessoa, para levá-la à mensagem que acabou de mandar. */
   sentCount: number;
 }
 
-function MessageList({ conversationId, onReply, sentCount }: MessageListProps) {
+function MessageList({ conversationId, isGroup, onReply, sentCount }: MessageListProps) {
   const messagesQuery = useLiveMessages(conversationId);
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = messagesQuery;
   const messages = useMemo(() => flattenMessages(messagesQuery.data), [messagesQuery.data]);
@@ -323,6 +342,7 @@ function MessageList({ conversationId, onReply, sentCount }: MessageListProps) {
               )}
               <MessageBubble
                 message={item}
+                showSender={shouldShowSender(item, previous, isGroup)}
                 onReply={onReply}
                 local={
                   isLocalMessage(item)
@@ -361,6 +381,8 @@ export function ChatPage() {
   const instanceOf = useInstanceLabel();
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [sentCount, setSentCount] = useState(0);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
 
   useEffect(() => {
     // Fica registrado depois de sair do chat: o envio pode terminar com a pessoa em outra tela.
@@ -375,6 +397,7 @@ export function ChatPage() {
   if (detail.error instanceof ApiError && detail.error.status === 404) return <Unavailable />;
   const conversation = detail.data;
   const name = conversation ? conversationName(conversation) : "Conversa";
+  const photo = conversation?.participant_photo_storage_url;
   // Gestor e admin veem com qual operador a conversa está; o operador só vê quando ela é de outra pessoa.
   const showAgent =
     conversation &&
@@ -392,15 +415,46 @@ export function ChatPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <ChatHeader name={name} details={details} photo={conversation?.participant_photo_storage_url}>
-        {conversation?.lead_id && <LeadInfoButton leadId={conversation.lead_id} />}
+      <ChatHeader
+        name={name}
+        details={details}
+        photo={photo}
+        onOpen={
+          conversation?.lead_id
+            ? () => setInfoOpen(true)
+            : photo
+              ? () => setPhotoOpen(true)
+              : undefined
+        }
+        openLabel={conversation?.lead_id ? "Informações do lead" : "Ver foto"}
+      >
         {conversation && <ChatActions conversation={conversation} />}
       </ChatHeader>
+      {conversation?.lead_id && (
+        <LeadInfoSheet
+          leadId={conversation.lead_id}
+          photo={photo}
+          open={infoOpen}
+          onClose={() => setInfoOpen(false)}
+        />
+      )}
+      <PhotoViewer
+        src={photo}
+        alt={`Foto de ${name}`}
+        open={photoOpen}
+        onClose={() => setPhotoOpen(false)}
+      />
       {details && <ConversationInfo instance={details.instance} agent={details.agent} />}
       {conversation?.lead_id && !conversation.is_group && (
         <FunnelBar leadId={conversation.lead_id} />
       )}
-      <MessageList key={id} conversationId={id} onReply={setReplyTo} sentCount={sentCount} />
+      <MessageList
+        key={id}
+        conversationId={id}
+        isGroup={Boolean(conversation?.is_group)}
+        onReply={setReplyTo}
+        sentCount={sentCount}
+      />
       {conversation && (
         <div className="shrink-0 bg-chat pb-[env(safe-area-inset-bottom)]">
           <Composer

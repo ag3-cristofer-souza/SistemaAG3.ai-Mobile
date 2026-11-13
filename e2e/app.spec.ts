@@ -920,6 +920,36 @@ test("o ponto de exclamação mostra quando o lead entrou, a origem e o históri
   await expect(painel.getByText("Pendente → Em Atendimento")).toBeVisible();
 });
 
+const FOTO =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="#3b82f6"/></svg>'
+  );
+
+test("tocar no nome abre o lead, e a foto amplia", async ({ page }) => {
+  const conversa = { ...COM_LEAD, participant_photo_storage_url: FOTO };
+  await mockBackend(page, { conversations: [conversa], messages: [MSG], cards: [{ ...CARD }] });
+  await openChat(page, conversa);
+  await page.getByRole("button", { name: "Informações do lead" }).click();
+  const painel = page.getByRole("dialog", { name: "Informações do lead" });
+  await expect(painel.getByText("maria@cliente.test")).toBeVisible();
+  await painel.getByRole("button", { name: "Ampliar foto" }).click();
+  const foto = page.getByRole("dialog", { name: "Foto de Maria Cliente" });
+  await expect(foto.getByRole("img", { name: "Foto de Maria Cliente" })).toBeVisible();
+  await foto.getByRole("button", { name: "Fechar foto" }).click();
+  await expect(foto).toBeHidden();
+  await expect(painel).toBeVisible();
+});
+
+test("sem lead, tocar no nome mostra a foto", async ({ page }) => {
+  const conversa = { ...CONV, participant_photo_storage_url: FOTO };
+  await mockBackend(page, { conversations: [conversa], messages: [MSG] });
+  await openChat(page, conversa);
+  await expect(page.getByRole("button", { name: "Informações do lead" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Ver foto" }).click();
+  await expect(page.getByRole("img", { name: "Foto de Maria Cliente" })).toBeVisible();
+});
+
 test("finalizar registra a etapa e a descrição antes de encerrar", async ({ page }) => {
   await mockBackend(page, { conversations: [COM_LEAD], messages: [MSG], cards: [{ ...CARD }] });
   const ordem: string[] = [];
@@ -937,6 +967,19 @@ test("finalizar registra a etapa e a descrição antes de encerrar", async ({ pa
   await page.getByRole("button", { name: "Finalizar", exact: true }).click();
   await expect(page).toHaveURL(/\/conversas$/);
   expect(ordem).toEqual(["etapa", "descricao", "finalizar"]);
+});
+
+test("o atalho do topo do chat abre o mesmo finalizar", async ({ page }) => {
+  await mockBackend(page, { conversations: [COM_LEAD], messages: [MSG], cards: [{ ...CARD }] });
+  await openChat(page, COM_LEAD);
+  const finalizar = page.waitForRequest(
+    (r) => r.method() === "POST" && r.url().endsWith("/conv-1/finish")
+  );
+  await page.getByRole("button", { name: "Finalizar este atendimento" }).click();
+  await expect(page.getByRole("dialog", { name: "Finalizar atendimento?" })).toBeVisible();
+  await page.getByRole("button", { name: "Finalizar", exact: true }).click();
+  await finalizar;
+  await expect(page).toHaveURL(/\/conversas$/);
 });
 
 test("se a etapa falhar, o atendimento não é encerrado", async ({ page }) => {

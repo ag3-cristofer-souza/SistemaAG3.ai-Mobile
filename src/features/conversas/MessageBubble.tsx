@@ -82,11 +82,13 @@ export interface LocalBubble {
 
 interface MessageBubbleProps {
   message: Message;
+  /** Falso quando o nome repetiria o da mensagem anterior, ou é o próprio contato numa conversa individual. */
+  showSender?: boolean;
   onReply?: (message: Message) => void;
   local?: LocalBubble;
 }
 
-export function MessageBubble({ message, onReply, local }: MessageBubbleProps) {
+export function MessageBubble({ message, showSender = true, onReply, local }: MessageBubbleProps) {
   const senderType = message.sender_type ?? "";
   if (message.message_type === "system_handoff") {
     return (
@@ -109,8 +111,9 @@ export function MessageBubble({ message, onReply, local }: MessageBubbleProps) {
   const kind = mediaKind(message);
   const text = kind && isMediaPlaceholder(body) ? "" : body;
   const caption = kind && kind !== "document" ? message.media_caption : null;
-  const sender =
-    senderType === "ai"
+  const sender = !showSender
+    ? null
+    : senderType === "ai"
       ? "IA"
       : senderType === "system"
         ? "Automação"

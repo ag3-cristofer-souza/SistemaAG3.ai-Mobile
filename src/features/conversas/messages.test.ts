@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Message } from "@/api/conversations";
 import {
+  shouldShowSender,
   firstItemIndex,
   flattenMessages,
   isMediaPlaceholder,
@@ -107,5 +108,30 @@ describe("mídia", () => {
     expect(safeMediaUrl("javascript:alert(1)")).toBeNull();
     expect(safeMediaUrl("https://cdn.test/a.png")).toBe("https://cdn.test/a.png");
     expect(safeMediaUrl(null)).toBeNull();
+  });
+});
+
+describe("nome no balão", () => {
+  const base = { id: "x", created_at: "2026-11-06T12:00:00Z" };
+  const contato = { ...base, direction: "in", sender_type: "user", sender_name: "Katia" };
+  const agente = { ...base, direction: "out", sender_type: "agent", sender_name: "Lia" };
+  const ia = { ...base, direction: "out", sender_type: "ai" };
+
+  it("conversa individual não repete o nome do contato", () => {
+    expect(shouldShowSender(contato, undefined, false)).toBe(false);
+  });
+
+  it("no grupo, o nome aparece só na primeira de uma sequência", () => {
+    expect(shouldShowSender(contato, undefined, true)).toBe(true);
+    expect(shouldShowSender(contato, contato, true)).toBe(false);
+    expect(shouldShowSender({ ...contato, sender_name: "Rui" }, contato, true)).toBe(true);
+  });
+
+  it("de quem enviou: muda o remetente ou o dia, o nome volta", () => {
+    expect(shouldShowSender(agente, agente, false)).toBe(false);
+    expect(shouldShowSender(ia, agente, false)).toBe(true);
+    expect(shouldShowSender(agente, { ...agente, created_at: "2026-11-05T12:00:00Z" }, false)).toBe(
+      true
+    );
   });
 });

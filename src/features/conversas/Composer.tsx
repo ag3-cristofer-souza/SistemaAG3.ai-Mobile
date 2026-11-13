@@ -1,5 +1,17 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Camera, FileText, ImageIcon, Mic, Paperclip, Send, Trash2, X } from "lucide-react";
+import {
+  Bot,
+  Camera,
+  FileText,
+  Hand,
+  Hourglass,
+  ImageIcon,
+  Mic,
+  Paperclip,
+  Send,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { ApiError } from "@/api/client";
 import {
@@ -11,6 +23,7 @@ import {
 import { useCurrentUser } from "@/features/auth/AuthProvider";
 import { startOggRecording, type OggRecording } from "@/lib/audio/oggRecorder";
 import { formatDuration } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { Button } from "@/ui/button";
 import { ErrorText } from "@/ui/feedback";
 import { Sheet } from "@/ui/sheet";
@@ -68,19 +81,38 @@ function AssumeBar({ conversation }: { conversation: Conversation }) {
       void queryClient.invalidateQueries({ queryKey: ["conversation-counts"] });
     },
   });
+  const withAi = conversation.status === "qualification_in_progress";
   return (
-    <div className="surface m-2 space-y-2 p-3">
-      <p className="text-center text-sm text-muted-foreground">
-        {conversation.status === "qualification_in_progress"
-          ? "A IA está atendendo. Assuma para responder você mesmo."
-          : "Aguardando atendimento. Assuma para responder."}
-      </p>
+    <div className="surface m-2 space-y-3 p-3">
+      <div className="flex items-center gap-3">
+        <span
+          className={cn(
+            "flex size-10 shrink-0 items-center justify-center rounded-xl",
+            withAi ? "bg-violet-100 text-violet-700" : "bg-warning/10 text-warning"
+          )}
+        >
+          {withAi ? (
+            <Bot className="size-5" aria-hidden="true" />
+          ) : (
+            <Hourglass className="size-5" aria-hidden="true" />
+          )}
+        </span>
+        <p className="text-sm">
+          <span className="block font-semibold">
+            {withAi ? "A IA está atendendo" : "Aguardando atendimento"}
+          </span>
+          <span className="block text-muted-foreground">
+            {withAi ? "Assuma para responder você mesmo." : "Assuma para responder."}
+          </span>
+        </p>
+      </div>
       <ErrorText>
         {assume.isError &&
           (assume.error instanceof ApiError ? assume.error.detail : "Não foi possível assumir.")}
       </ErrorText>
       {notice && <p className="text-sm">{notice}</p>}
       <Button block loading={assume.isPending} onClick={() => assume.mutate()}>
+        <Hand aria-hidden="true" />
         Assumir e responder
       </Button>
     </div>

@@ -1,12 +1,25 @@
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, CircleAlert } from "lucide-react";
+import {
+  Building2,
+  CalendarClock,
+  ChevronDown,
+  History,
+  Mail,
+  MapPin,
+  Megaphone,
+  NotebookText,
+  Phone,
+  type LucideIcon,
+} from "lucide-react";
 import { useId, useState } from "react";
 import { ApiError } from "@/api/client";
 import { crmApi } from "@/api/crm";
-import { formatDayLabel, formatTime } from "@/lib/format";
+import { formatDayLabel, formatPhone, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { Avatar } from "@/ui/avatar";
 import { Button } from "@/ui/button";
 import { ErrorText } from "@/ui/feedback";
+import { PhotoViewer } from "@/ui/photo-viewer";
 import { Sheet } from "@/ui/sheet";
 import { historyDetail, historyLabel, stageLabel } from "./funnel";
 import { useLeadCard } from "./useLeadCard";
@@ -76,7 +89,7 @@ export function FunnelBar({ leadId }: { leadId: string }) {
           {card && (
             <fieldset disabled={access !== "move"}>
               <legend className="mb-1.5 text-sm font-medium">Etapa do funil</legend>
-              <ul className="divide-y rounded-md border">
+              <ul className="divide-y divide-border/70 overflow-hidden rounded-2xl bg-muted/50">
                 {stages.map((stage) => {
                   // Marca na hora, sem esperar o servidor. Se ele recusar, volta para a etapa real e mostra o erro.
                   const current = stage.key === (move.isPending ? move.variables : card.status);
@@ -84,7 +97,8 @@ export function FunnelBar({ leadId }: { leadId: string }) {
                     <li key={stage.key}>
                       <label
                         className={cn(
-                          "flex min-h-11 items-center gap-3 px-3 text-sm",
+                          "flex min-h-12 items-center gap-3 px-3.5 text-sm",
+                          current && "bg-secondary font-semibold text-secondary-foreground",
                           access !== "move" && "text-muted-foreground"
                         )}
                       >
@@ -125,7 +139,7 @@ export function FunnelBar({ leadId }: { leadId: string }) {
               rows={3}
               value={text}
               onChange={(event) => setText(event.target.value)}
-              className="w-full rounded-md border border-input bg-background p-3"
+              className="w-full rounded-xl border border-input bg-background p-3"
             />
             <ErrorText>{addNote.isError && errorText(addNote.error)}</ErrorText>
             {saved && (
@@ -143,17 +157,40 @@ export function FunnelBar({ leadId }: { leadId: string }) {
   );
 }
 
-function InfoLine({ label, value }: { label: string; value: string | null | undefined }) {
+function InfoLine({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string | null | undefined;
+}) {
   if (!value) return null;
   return (
-    <div className="flex justify-between gap-4 py-1.5 text-sm">
-      <dt className="shrink-0 text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 break-words text-right">{value}</dd>
+    <div className="flex items-center gap-3 px-3.5 py-2.5">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
+        <Icon className="size-4" aria-hidden="true" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <dt className="text-xs text-muted-foreground">{label}</dt>
+        <dd className="break-words text-sm font-medium">{value}</dd>
+      </div>
     </div>
   );
 }
 
-function LeadInfo({ leadId }: { leadId: string }) {
+function SectionTitle({ icon: Icon, children }: { icon: LucideIcon; children: string }) {
+  return (
+    <h3 className="flex items-center gap-2 text-sm font-semibold">
+      <Icon className="size-4 text-primary" aria-hidden="true" />
+      {children}
+    </h3>
+  );
+}
+
+function LeadInfo({ leadId, photo }: { leadId: string; photo?: string | null }) {
+  const [zoom, setZoom] = useState(false);
   const lead = useQuery({ queryKey: ["lead", leadId], queryFn: () => crmApi.lead(leadId) });
   const origin = useQuery({
     queryKey: ["lead-origin", leadId],
@@ -171,57 +208,99 @@ function LeadInfo({ leadId }: { leadId: string }) {
     staleTime: 0,
   });
   const place = [lead.data?.city, lead.data?.state].filter(Boolean).join(" - ");
+  const name = lead.data?.name || "Lead";
+  const originLabel = origin.data ?? lead.data?.source;
 
   return (
-    <div className="space-y-5 p-4">
+    <div className="space-y-5 px-4 pb-4 pt-1">
       {lead.isError && <ErrorText>{errorText(lead.error)}</ErrorText>}
       {lead.data && (
-        <dl className="divide-y">
-          <InfoLine label="Nome" value={lead.data.name} />
-          <InfoLine label="Telefone" value={lead.data.phone} />
-          <InfoLine label="E-mail" value={lead.data.email} />
-          <InfoLine label="Empresa" value={lead.data.company_name} />
-          <InfoLine label="Cidade" value={place} />
-          <InfoLine label="Entrou em" value={lead.data.created_at && when(lead.data.created_at)} />
-          <InfoLine label="Origem" value={origin.data ?? lead.data.source} />
-        </dl>
+        <>
+          <div className="flex flex-col items-center gap-2 text-center">
+            {photo ? (
+              <button
+                type="button"
+                aria-label="Ampliar foto"
+                onClick={() => setZoom(true)}
+                className="rounded-full ring-4 ring-secondary transition-transform active:scale-95"
+              >
+                <Avatar name={name} photo={photo} className="size-24 text-2xl" />
+              </button>
+            ) : (
+              <Avatar name={name} className="size-20 text-xl" />
+            )}
+            <PhotoViewer
+              src={photo}
+              alt={`Foto de ${name}`}
+              open={zoom}
+              onClose={() => setZoom(false)}
+            />
+            <div className="min-w-0">
+              <p className="break-words text-base font-semibold">{name}</p>
+            </div>
+          </div>
+          <dl className="divide-y divide-border/70 overflow-hidden rounded-2xl bg-muted/50">
+            <InfoLine
+              icon={Phone}
+              label="Telefone"
+              value={formatPhone(lead.data.phone) || lead.data.phone}
+            />
+            <InfoLine icon={Mail} label="E-mail" value={lead.data.email} />
+            <InfoLine icon={Building2} label="Empresa" value={lead.data.company_name} />
+            <InfoLine icon={MapPin} label="Cidade" value={place} />
+            <InfoLine
+              icon={CalendarClock}
+              label="Entrou em"
+              value={lead.data.created_at && when(lead.data.created_at)}
+            />
+            <InfoLine icon={Megaphone} label="Origem" value={originLabel} />
+          </dl>
+        </>
       )}
 
-      <section className="space-y-2">
-        <h3 className="text-sm font-medium">Descrições</h3>
+      <section className="space-y-2.5">
+        <SectionTitle icon={NotebookText}>Descrições</SectionTitle>
         {notes.isError && <ErrorText>Não foi possível carregar as descrições.</ErrorText>}
         {notes.data?.length === 0 && (
-          <p className="text-sm text-muted-foreground">Nenhuma descrição ainda.</p>
+          <p className="rounded-xl border border-dashed px-3 py-4 text-center text-sm text-muted-foreground">
+            Nenhuma descrição ainda.
+          </p>
         )}
         <ul className="space-y-2">
           {notes.data?.map((note) => (
-            <li key={note.id} className="rounded-md border p-3 text-sm">
+            <li key={note.id} className="rounded-xl bg-muted/50 p-3 text-sm">
               <p className="whitespace-pre-wrap break-words">{note.content}</p>
               {note.created_at && (
-                <p className="mt-1 text-xs text-muted-foreground">{when(note.created_at)}</p>
+                <p className="mt-1.5 text-xs text-muted-foreground">{when(note.created_at)}</p>
               )}
             </li>
           ))}
         </ul>
       </section>
 
-      <section className="space-y-2">
-        <h3 className="text-sm font-medium">Histórico</h3>
+      <section className="space-y-2.5">
+        <SectionTitle icon={History}>Histórico</SectionTitle>
         {history.isError && <ErrorText>Não foi possível carregar o histórico.</ErrorText>}
         {history.data?.length === 0 && (
-          <p className="text-sm text-muted-foreground">Nada registrado ainda.</p>
+          <p className="rounded-xl border border-dashed px-3 py-4 text-center text-sm text-muted-foreground">
+            Nada registrado ainda.
+          </p>
         )}
-        <ol className="space-y-3 border-l pl-3">
+        <ol className="relative ml-1.5 space-y-4 border-l-2 border-secondary pl-5">
           {history.data?.map((item) => {
             const detail = historyDetail(item);
             return (
-              <li key={item.id} className="text-sm">
-                <p className="font-medium">{historyLabel(item.kind)}</p>
+              <li key={item.id} className="relative text-sm">
+                <span
+                  aria-hidden="true"
+                  className="absolute -left-[1.6rem] top-1 size-3 rounded-full border-2 border-card bg-primary"
+                />
+                <p className="font-semibold">{historyLabel(item.kind)}</p>
                 {detail && <p className="break-words">{detail}</p>}
                 {item.description && (
                   <p className="break-words text-muted-foreground">{item.description}</p>
                 )}
-                <p className="text-xs text-muted-foreground">
+                <p className="mt-0.5 text-xs text-muted-foreground">
                   {item.actor_name} · {when(item.created_at)}
                 </p>
               </li>
@@ -233,22 +312,21 @@ function LeadInfo({ leadId }: { leadId: string }) {
   );
 }
 
-/** O ponto de exclamação do cabeçalho: o que aconteceu com o lead. */
-export function LeadInfoButton({ leadId }: { leadId: string }) {
-  const [open, setOpen] = useState(false);
+/** O que aconteceu com o lead. Abre ao tocar no nome ou na foto, no cabeçalho do chat. */
+export function LeadInfoSheet({
+  leadId,
+  photo,
+  open,
+  onClose,
+}: {
+  leadId: string;
+  photo?: string | null;
+  open: boolean;
+  onClose: () => void;
+}) {
   return (
-    <>
-      <button
-        type="button"
-        aria-label="Informações do lead"
-        onClick={() => setOpen(true)}
-        className="flex size-11 shrink-0 items-center justify-center"
-      >
-        <CircleAlert className="size-5" aria-hidden="true" />
-      </button>
-      <Sheet open={open} title="Informações do lead" onClose={() => setOpen(false)}>
-        {open && <LeadInfo leadId={leadId} />}
-      </Sheet>
-    </>
+    <Sheet open={open} title="Informações do lead" onClose={onClose}>
+      {open && <LeadInfo leadId={leadId} photo={photo} />}
+    </Sheet>
   );
 }

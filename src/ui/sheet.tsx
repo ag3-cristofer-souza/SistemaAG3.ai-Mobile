@@ -23,7 +23,10 @@ export function Sheet({ open, title, onClose, children }: SheetProps) {
     <dialog
       ref={dialog}
       aria-label={title}
-      onClose={onClose}
+      // O React repassa o `close` de um diálogo aberto dentro deste (a foto ampliada): só vale o deste.
+      onClose={(event) => {
+        if (event.target === dialog.current) onClose();
+      }}
       onClick={(event) => {
         if (event.target === dialog.current) onClose();
       }}

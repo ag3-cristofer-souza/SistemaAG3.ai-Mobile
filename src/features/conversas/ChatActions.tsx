@@ -51,8 +51,10 @@ function ActionRow({
       onClick={onClick}
       className="flex min-h-14 w-full items-center gap-3 px-4 text-left active:bg-muted"
     >
-      <Icon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-      {label}
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+        <Icon className="size-5" aria-hidden="true" />
+      </span>
+      <span className="font-medium">{label}</span>
     </button>
   );
 }
@@ -94,7 +96,7 @@ function TransferForm({
           required
           value={target}
           onChange={(event) => setTarget(event.target.value)}
-          className="min-h-11 w-full rounded-md border border-input bg-background px-3"
+          className="min-h-11 w-full rounded-xl border border-input bg-background px-3"
         >
           <option value="">{roster.isPending ? "Carregando…" : "Selecione"}</option>
           {people.map((person) => (
@@ -114,7 +116,7 @@ function TransferForm({
           rows={3}
           value={note}
           onChange={(event) => setNote(event.target.value)}
-          className="w-full rounded-md border border-input bg-background p-3"
+          className="w-full rounded-xl border border-input bg-background p-3"
         />
       </div>
       <ErrorText>
@@ -167,7 +169,7 @@ function NotesPanel({ conversationId }: { conversationId: string }) {
           value={text}
           placeholder="Nova anotação"
           onChange={(event) => setText(event.target.value)}
-          className="w-full rounded-md border border-input bg-background p-3"
+          className="w-full rounded-xl border border-input bg-background p-3"
         />
         <ErrorText>{add.isError && errorText(add.error)}</ErrorText>
         <Button type="submit" block loading={add.isPending} disabled={!text.trim()}>
@@ -180,7 +182,7 @@ function NotesPanel({ conversationId }: { conversationId: string }) {
       )}
       <ul className="space-y-2">
         {notes.data?.map((note) => (
-          <li key={note.id} className="rounded-md border p-3 text-sm">
+          <li key={note.id} className="rounded-xl bg-amber-50 p-3 text-sm ring-1 ring-amber-200/70">
             <p className="whitespace-pre-wrap break-words">{note.content}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               {nameOf(note.created_by)}
@@ -241,7 +243,7 @@ function FinishForm({
             id={stageId}
             value={stage}
             onChange={(event) => setChosen(event.target.value)}
-            className="min-h-11 w-full rounded-md border border-input bg-background px-3"
+            className="min-h-11 w-full rounded-xl border border-input bg-background px-3"
           >
             {stages.map((item) => (
               <option key={item.key} value={item.key}>
@@ -261,12 +263,18 @@ function FinishForm({
             rows={3}
             value={text}
             onChange={(event) => setText(event.target.value)}
-            className="w-full rounded-md border border-input bg-background p-3"
+            className="w-full rounded-xl border border-input bg-background p-3"
           />
         </div>
       )}
       <ErrorText>{finish.isError && errorText(finish.error)}</ErrorText>
-      <Button type="submit" block loading={finish.isPending}>
+      <Button
+        type="submit"
+        block
+        loading={finish.isPending}
+        className="bg-success text-success-foreground active:bg-success/90"
+      >
+        {!finish.isPending && <CheckCircle2 aria-hidden="true" />}
         Finalizar
       </Button>
       <Button block variant="ghost" onClick={onCancel}>
@@ -331,6 +339,18 @@ export function ChatActions({ conversation }: { conversation: Conversation }) {
 
   return (
     <>
+      {available.finish && (
+        <button
+          type="button"
+          // "Finalizar este atendimento": o item do menu e o botão do formulário mantêm os nomes deles.
+          aria-label="Finalizar este atendimento"
+          onClick={() => setPanel("finish")}
+          className="flex h-9 shrink-0 items-center gap-1 rounded-full bg-success/10 px-2.5 text-xs font-semibold text-success active:bg-success/20"
+        >
+          <CheckCircle2 className="size-4" aria-hidden="true" />
+          Finalizar
+        </button>
+      )}
       <button
         type="button"
         aria-label="Mais ações"
@@ -339,7 +359,7 @@ export function ChatActions({ conversation }: { conversation: Conversation }) {
           confirm.reset();
           setPanel("menu");
         }}
-        className="ml-auto flex size-11 shrink-0 items-center justify-center"
+        className="flex size-11 shrink-0 items-center justify-center rounded-full active:bg-muted"
       >
         <MoreVertical className="size-5" aria-hidden="true" />
       </button>

@@ -64,6 +64,44 @@ const sentSchema = z.object({
   duplicate: z.boolean().optional(),
 });
 const uploadSchema = z.object({ data: z.object({ url: z.string() }) });
+
+// Template da Meta pela conversa (backend, adendo iu): fora da janela de 24 h, o canal oficial só entrega template.
+export const metaWindowSchema = z.object({
+  meta: z.boolean(),
+  open: z.boolean(),
+  last_inbound_at: z.string().nullable(),
+  expires_at: z.string().nullable(),
+});
+export type MetaWindow = z.infer<typeof metaWindowSchema>;
+
+export const templateSchema = z.object({
+  name: z.string(),
+  language: z.string(),
+  category: z.string(),
+  header_format: z.string(),
+  header_media_url: z.string(),
+  footer: z.string(),
+  buttons: z.array(z.string()),
+  fields: z.array(
+    z.object({ key: z.string(), label: z.string(), value: z.string(), example: z.string() })
+  ),
+  preview: z.string(),
+  preview_template: z.string(),
+  configured: z.boolean(),
+  sendable: z.boolean(),
+  unavailable_reason: z.string(),
+});
+export type ConversationTemplate = z.infer<typeof templateSchema>;
+
+const metaWindowResponseSchema = z.object({ data: metaWindowSchema });
+const templatesSchema = z.object({ data: z.array(templateSchema), window: metaWindowSchema });
+
+export interface SendTemplateBody {
+  template_name: string;
+  language: string;
+  values: Record<string, string>;
+  client_message_id: string;
+}
 const noteSchema = z.object({
   id: z.string(),
   content: z.string().nullable(),
@@ -123,6 +161,12 @@ export const conversationsApi = {
     }),
   send: async (id: string, body: SendBody): Promise<Message> =>
     (await api.post(`/conversations/${id}/send-message`, sentSchema, body)).data,
+  metaWindow: async (id: string): Promise<MetaWindow> =>
+    (await api.get(`/conversations/${id}/meta-window`, metaWindowResponseSchema)).data,
+  templates: async (id: string): Promise<ConversationTemplate[]> =>
+    (await api.get(`/conversations/${id}/templates`, templatesSchema)).data,
+  sendTemplate: async (id: string, body: SendTemplateBody): Promise<Message> =>
+    (await api.post(`/conversations/${id}/send-template`, sentSchema, body)).data,
   upload: async (id: string, file: Blob, fileName: string, mimeType: string): Promise<string> => {
     const form = new FormData();
     form.append("file", new File([file], fileName, { type: mimeType }));

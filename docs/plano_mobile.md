@@ -410,6 +410,22 @@ Pedido do Daniel: telas mais bonitas e, em cada conversa, a instância e, para g
 - **Operador:** gestor e admin veem com quem a conversa está, ou "Sem operador", na lista e no chat. O operador só vê o nome quando a
   conversa é de outra pessoa.
 
+### Template da Meta fora da janela de 24 h (18/11, com backend)
+
+Relatos de "falhou" no canal oficial: a Meta aceita texto livre fora da janela e recusa depois (131047). Agora o backend
+recusa antes de enviar (adendo it), e o app oferece o caminho certo (adendo iu do backend):
+
+- O `Composer` consulta `GET /conversations/{id}/meta-window` (a cada 60 s; mensagem nova do cliente invalida a
+  consulta). Canal Meta com a janela fechada: no lugar do campo de texto, a barra "O cliente não escreve há mais de
+  24 h…" com o botão **Template**.
+- `TemplateSheet`: lista os templates aprovados (`GET /conversations/{id}/templates`), abre um template com os campos já
+  preenchidos pelo lead, prévia ao vivo e **Enviar template** (`POST /conversations/{id}/send-template`, com
+  `client_message_id`). A mensagem entra na conversa pelo cache, sem esperar o tempo real. Template com mídia no
+  cabeçalho sem configuração no AG3 aparece desabilitado, com o motivo.
+- Regras puras em `features/conversas/templates.ts` (com teste). Envio direto, fora do `outbox`: o template não vale
+  a pena reenviar sozinho com a rede fora.
+- Ordem de subida: backend, depois app. Sem o backend novo, a consulta da janela falha e o campo de texto continua.
+
 **Como cada onda chega à produção:** Daniel roda a suíte e commita. Só app: o `push` no Mobile testa e implanta sozinho (`ci.yml`).
 Com backend: `push` → `build` verde → manifests novos, se houver → workflow `deploy`, com aprovação de migrations.
 

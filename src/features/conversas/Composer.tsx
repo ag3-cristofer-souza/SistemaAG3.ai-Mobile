@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bot,
   Camera,
@@ -6,6 +6,7 @@ import {
   Hand,
   Hourglass,
   ImageIcon,
+  MessageSquareText,
   Mic,
   Paperclip,
   Send,
@@ -31,6 +32,8 @@ import { requiresAssume } from "./actions";
 import { parseQuote } from "./messages";
 import { outbox, type QuoteDraft } from "./outbox";
 import { conversationName } from "./tabs";
+import { TemplateSheet } from "./TemplateSheet";
+import { needsTemplate } from "./templates";
 
 const MAX_FILE_BYTES = 100 * 1024 * 1024; // limite de `chat_media` no backend
 const MAX_TEXTAREA_PX = 128;
@@ -189,7 +192,36 @@ interface ComposerProps {
   onSent: () => void;
 }
 
+/** Canal oficial com a janela de 24 h fechada: no lugar do campo de texto, o caminho para mandar um template. */
+function TemplateBar({ conversationId, onSent }: { conversationId: string; onSent: () => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex items-center gap-3 p-3">
+      <MessageSquareText className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+      <p role="status" className="min-w-0 flex-1 text-sm text-muted-foreground">
+        O cliente não escreve há mais de 24 h. Pelo WhatsApp oficial, só dá para retomar com um
+        template.
+      </p>
+      <Button onClick={() => setOpen(true)}>Template</Button>
+      <TemplateSheet
+        conversationId={conversationId}
+        open={open}
+        onClose={() => setOpen(false)}
+        onSent={onSent}
+      />
+    </div>
+  );
+}
+
 export function Composer({ conversation, replyTo, onClearReply, onSent }: ComposerProps) {
+  // Janela de 24 h do canal oficial (backend, adendo iu). Mensagem nova do cliente invalida a consulta (ChatPage).
+  const metaWindow = useQuery({
+    queryKey: ["meta-window", conversation.id],
+    queryFn: () => conversationsApi.metaWindow(conversation.id),
+    enabled: !conversation.is_group,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
   const [text, setText] = useState("");
   const [error, setError] = useState("");
   const [attachOpen, setAttachOpen] = useState(false);
@@ -250,6 +282,9 @@ export function Composer({ conversation, replyTo, onClearReply, onSent }: Compos
   };
 
   if (requiresAssume(conversation)) return <AssumeBar conversation={conversation} />;
+  if (needsTemplate(metaWindow.data)) {
+    return <TemplateBar conversationId={conversation.id} onSent={onSent} />;
+  }
 
   const quote = replyTo ? quoteFrom(replyTo, conversation) : null;
   const recording = recorder.state === "recording" || recorder.state === "encoding";

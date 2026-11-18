@@ -108,7 +108,11 @@ function useLiveMessages(conversationId: string) {
       queryClient.setQueryData<MessagesData>(key, (data) =>
         data ? upsertMessage(data, message) : data
       );
-      if (change.eventType === "INSERT" && message.direction !== "out") markRead();
+      if (change.eventType === "INSERT" && message.direction !== "out") {
+        markRead();
+        // Resposta do cliente reabre a janela de 24 h do canal oficial (adendo iu).
+        void queryClient.invalidateQueries({ queryKey: ["meta-window", conversationId] });
+      }
     };
 
     const offMessage = realtime.on("messages", onMessage);

@@ -10,6 +10,8 @@ const cardSchema = z.object({
   assigned_to: z.string().nullish(),
   closed_at: z.string().nullish(),
   assignedToName: z.string().nullish(),
+  /** Valor da venda, em reais (MOB-03). */
+  total_value: z.number().nullish(),
 });
 const stageSchema = z.object({
   key: z.string(),
@@ -82,6 +84,8 @@ export const crmApi = {
     ),
   moveCard: (cardId: string, status: string) =>
     api.put(`/produtos/${cardId}`, z.unknown(), { status }),
+  setCardValue: (cardId: string, value: number) =>
+    api.put(`/produtos/${cardId}`, z.unknown(), { total_value: value }),
   assumeCard: (cardId: string) => api.post(`/produtos/${cardId}/assume`, z.unknown(), {}),
   lead: async (leadId: string): Promise<LeadDetail> =>
     (await api.get(`/leads/${leadId}`, z.object({ data: leadSchema }), { enrich: "false" })).data,

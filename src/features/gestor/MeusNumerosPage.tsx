@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Headset, Inbox, PauseCircle, UsersRound } from "lucide-react";
 import { useState } from "react";
 import { conversationsApi } from "@/api/conversations";
+import { useCurrentUser } from "@/features/auth/AuthProvider";
 import { StatGrid, StatTile, Loading, SectionError } from "./charts";
 import { PeriodPicker } from "./PeriodPicker";
 import { PeriodResults } from "./PeriodResults";
@@ -13,6 +14,7 @@ import { formatInt, type PeriodKey } from "./period";
  * de operador e usa o usuário logado, e os contadores de conversa no app só contam as dele.
  */
 export function MeusNumerosPage() {
+  const user = useCurrentUser();
   const [period, setPeriod] = useState<PeriodKey>("today");
   const overview = useOverview(period);
   const counts = useQuery({ queryKey: ["conversation-counts"], queryFn: conversationsApi.counts });
@@ -61,7 +63,11 @@ export function MeusNumerosPage() {
         <SectionError error={overview.error} onRetry={() => void overview.refetch()} />
       )}
       {overview.data && (
-        <PeriodResults overview={overview.data} label="Seus resultados no período" />
+        <PeriodResults
+          overview={overview.data}
+          label="Seus resultados no período"
+          userId={user.id}
+        />
       )}
     </div>
   );

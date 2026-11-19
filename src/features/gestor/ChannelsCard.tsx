@@ -18,10 +18,9 @@ import { Sheet } from "@/ui/sheet";
 import { channelAlerts, messagingLimitLabel, providerLabel, qualityLabel } from "./channels";
 import { CHIP_TONE } from "./alerts";
 import { AlertList, DetailLine } from "./detail";
+import { plural } from "./period";
 
 type Tab = "off" | "on";
-
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /** Canais da empresa em duas guias; tocar num canal abre o detalhe com os alertas. */
 export function ChannelsCard({

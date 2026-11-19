@@ -81,6 +81,11 @@ const OVERVIEW = {
     },
     rows: [{ name: "Canal Vendas", contatos: 80, efetivas: 25, efetividade: 50, aResponder: 6 }],
   },
+  operators: [
+    { user_id: "o2", name: "Olga Online", messages: 42, conversations: 9 },
+    { user_id: "u1", name: "Pessoa Teste", messages: 1, conversations: 1 },
+    { user_id: "o1", name: "Otto Offline", messages: 3, conversations: 2 },
+  ],
 };
 
 const MARKETING = {
@@ -313,7 +318,13 @@ async function mockBackend(page: Page, options: MockOptions = {}) {
         json({ data: [{ id: "inst-1", display_name: "Comercial", number: "5511911112222" }] })
       );
     }
-    if (path === "/dashboard/overview") return route.fulfill(json({ data: OVERVIEW }));
+    if (path === "/dashboard/overview") {
+      // Como o servidor: operador vê só a própria linha; o gestor, a de quem escolheu (ou todas).
+      const agent =
+        role === "operator" ? "u1" : new URL(request.url()).searchParams.get("agent_id");
+      const operators = OVERVIEW.operators.filter((row) => !agent || row.user_id === agent);
+      return route.fulfill(json({ data: { ...OVERVIEW, operators } }));
+    }
     if (path === "/reports/marketing/visao") {
       if (role === "operator") return route.fulfill(json({ detail: "Permissao negada" }, 403));
       return route.fulfill(json({ data: MARKETING }));
@@ -711,9 +722,11 @@ test("tocar no operador abre o detalhe com alertas e os números dele no períod
   await expect(alertas).toContainText("No limite de conversas");
   await expect(alertas).toContainText("Offline com 299 conversas esperando o aceite");
   await expect(alertas).toContainText("Sem acessar há 10 dias");
-  await expect(
-    detalhe.getByRole("region", { name: "Resultados de Otto Offline no período" })
-  ).toBeVisible();
+  const resultados = detalhe.getByRole("region", { name: "Resultados de Otto Offline no período" });
+  await expect(resultados).toBeVisible();
+  const tile = (label: string) => resultados.locator(".surface", { hasText: label });
+  await expect(tile("Mensagens enviadas")).toContainText("3");
+  await expect(tile("Conversas atendidas")).toContainText("2");
   expect(agents).toContain("o1");
   await page.keyboard.press("Escape");
   await expect(detalhe).toBeHidden();
@@ -1040,6 +1053,40 @@ test("muda a etapa do funil e salva a descrição no CRM pela conversa", async (
   await expect(bar).toContainText("Convertido");
 });
 
+test("o valor da venda vai para o card e aparece na faixa do funil", async ({ page }) => {
+  await mockBackend(page, { conversations: [COM_LEAD], messages: [MSG], cards: [{ ...CARD }] });
+  await openChat(page, COM_LEAD);
+  const bar = page.getByRole("button", { name: /Funil:/ });
+  await bar.click();
+  const campo = page.getByLabel("Valor da venda (R$)");
+  await expect(campo).toHaveValue("");
+  await campo.fill("abc");
+  await expect(page.getByText("Use números, com vírgula nos centavos")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Salvar valor" })).toBeDisabled();
+  await campo.fill("1.500,5");
+  const put = page.waitForRequest(
+    (r) => r.url().endsWith("/produtos/card-1") && r.method() === "PUT"
+  );
+  await page.getByRole("button", { name: "Salvar valor" }).click();
+  expect((await put).postDataJSON()).toEqual({ total_value: 1500.5 });
+  await expect(page.getByText("Valor salvo no card.")).toBeVisible();
+  await expect(campo).toHaveValue("1.500,50");
+  await page.getByRole("button", { name: "Fechar" }).click();
+  await expect(bar).toContainText(/R\$\s1\.500,50/);
+});
+
+test("card de outro operador mostra o valor sem deixar mudar", async ({ page }) => {
+  await mockBackend(page, {
+    conversations: [COM_LEAD],
+    messages: [MSG],
+    cards: [{ ...CARD, assigned_to: "u2", assignedToName: "Olga", total_value: 990 }],
+  });
+  await openChat(page, COM_LEAD);
+  await page.getByRole("button", { name: /Funil:/ }).click();
+  await expect(page.getByLabel("Valor da venda (R$)")).toHaveValue("990,00");
+  await expect(page.getByLabel("Valor da venda (R$)")).toBeDisabled();
+});
+
 test("card sem dono precisa ser assumido antes de mudar a etapa", async ({ page }) => {
   await mockBackend(page, {
     conversations: [COM_LEAD],
@@ -1126,6 +1173,33 @@ test("finalizar registra a etapa e a descrição antes de encerrar", async ({ pa
   await page.getByRole("button", { name: "Finalizar", exact: true }).click();
   await expect(page).toHaveURL(/\/conversas$/);
   expect(ordem).toEqual(["etapa", "descricao", "finalizar"]);
+});
+
+test("finalizar grava o valor da venda antes de encerrar, e valor inválido não deixa", async ({
+  page,
+}) => {
+  await mockBackend(page, { conversations: [COM_LEAD], messages: [MSG], cards: [{ ...CARD }] });
+  const corpos: unknown[] = [];
+  const ordem: string[] = [];
+  page.on("request", (r) => {
+    const path = new URL(r.url()).pathname;
+    if (r.method() === "PUT" && path === "/produtos/card-1") {
+      corpos.push(r.postDataJSON());
+      ordem.push("card");
+    }
+    if (r.method() === "POST" && path.endsWith("/finish")) ordem.push("finalizar");
+  });
+  await openChat(page, COM_LEAD);
+  await page.getByRole("button", { name: "Mais ações" }).click();
+  await page.getByRole("button", { name: "Finalizar atendimento" }).click();
+  const campo = page.getByLabel("Valor da venda (R$)");
+  await campo.fill("12,345");
+  await expect(page.getByRole("button", { name: "Finalizar", exact: true })).toBeDisabled();
+  await campo.fill("2.350");
+  await page.getByRole("button", { name: "Finalizar", exact: true }).click();
+  await expect(page).toHaveURL(/\/conversas$/);
+  expect(corpos).toEqual([{ total_value: 2350 }]);
+  expect(ordem).toEqual(["card", "finalizar"]);
 });
 
 test("o atalho do topo do chat abre o mesmo finalizar", async ({ page }) => {
@@ -1387,6 +1461,9 @@ test("dashboards mostram comercial, marketing e PerformaZap, com o período na A
   await page.getByRole("tab", { name: "PerformaZap" }).click();
   await expect(page.getByText("Canal Vendas")).toBeVisible();
   await expect(page.getByText("6 a responder", { exact: false })).toBeVisible();
+  // Por operador (MOB-11): quem mais mandou mensagem primeiro, com as conversas atendidas.
+  await expect(page.getByText("42 mensagens enviadas · 9 conversas atendidas")).toBeVisible();
+  await expect(page.getByText("1 mensagem enviada · 1 conversa atendida")).toBeVisible();
 });
 
 test("operador vê os próprios números e não entra em Dashboards", async ({ page }) => {
@@ -1399,6 +1476,9 @@ test("operador vê os próprios números e não entra em Dashboards", async ({ p
   await expect(page.getByText("Na sua fila")).toBeVisible();
   await expect(page.getByText("Limite: 5")).toBeVisible();
   await expect(page.getByText("Atendimentos novos")).toBeVisible();
+  const resultados = page.getByRole("region", { name: "Seus resultados no período" });
+  await expect(resultados.getByText("Mensagens enviadas")).toBeVisible();
+  await expect(resultados).toContainText("Conversas atendidas");
   await page.goto("/dashboards");
   await expect(page).toHaveURL(/\/conversas$/);
 });

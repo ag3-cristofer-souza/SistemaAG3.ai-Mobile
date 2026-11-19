@@ -1,6 +1,7 @@
 import type { LiveOperator } from "@/api/dashboard";
 import { formatDuration } from "@/lib/format";
 import { ALERT_ORDER, type Alert } from "./alerts";
+import { plural } from "./period";
 
 const DAY_S = 24 * 3600;
 /** Esperando o aceite há mais que isto: já não é fila do dia, é conversa esquecida com a pessoa. */
@@ -34,8 +35,6 @@ export function presenceLabel(operator: LiveOperator, now: number): string {
   const away = awaySeconds(operator, now);
   return away === null ? "Offline" : `Offline, visto há ${formatDuration(away)}`;
 }
-
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /** O que o gestor precisa saber do operador, do mais grave para o menos grave. */
 export function operatorAlerts(operator: LiveOperator, now: number, age = 0): Alert[] {

@@ -66,6 +66,10 @@ export function useLeadCard(leadId: string | null | undefined) {
     mutationFn: (status: string) => crmApi.moveCard(card!.id, status),
     onSuccess: refresh,
   });
+  const setValue = useMutation({
+    mutationFn: (value: number) => crmApi.setCardValue(card!.id, value),
+    onSuccess: refresh,
+  });
   const assume = useMutation({
     mutationFn: () => crmApi.assumeCard(card!.id),
     onSuccess: refresh,
@@ -83,6 +87,7 @@ export function useLeadCard(leadId: string | null | undefined) {
     access: card ? cardAccess(card, user.id, isManagerRole(role)) : null,
     loading: cards.isPending && enabled,
     move,
+    setValue,
     assume,
     addNote,
   };

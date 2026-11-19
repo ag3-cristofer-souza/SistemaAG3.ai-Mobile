@@ -37,6 +37,7 @@ import {
   formatInt,
   formatMoney,
   formatPercent,
+  plural,
   type PeriodKey,
 } from "./period";
 
@@ -315,6 +316,7 @@ function PerformaZap({ period }: { period: PeriodKey }) {
     return <SectionError error={overview.error} onRetry={() => void overview.refetch()} />;
   }
   const { summary, rows } = overview.data.zap;
+  const { operators } = overview.data;
   return (
     <div className="space-y-4">
       <StatGrid label="WhatsApp">
@@ -375,6 +377,17 @@ function PerformaZap({ period }: { period: PeriodKey }) {
             label: row.name,
             value: row.contatos,
             detail: `${formatInt(row.efetivas)} efetivas · ${formatPercent(row.efetividade)} de efetividade · ${formatInt(row.aResponder)} a responder`,
+          }))}
+        />
+      </Card>
+      <Card title="Por operador">
+        <RankBars
+          empty="Nenhum operador mandou mensagem no período."
+          items={operators.map((row) => ({
+            key: row.user_id,
+            label: row.name,
+            value: row.messages,
+            detail: `${plural(row.messages, "mensagem enviada", "mensagens enviadas")} · ${plural(row.conversations, "conversa atendida", "conversas atendidas")}`,
           }))}
         />
       </Card>

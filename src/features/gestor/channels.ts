@@ -2,6 +2,7 @@ import type { LiveChannel } from "@/api/dashboard";
 import { formatPhone } from "@/lib/format";
 
 import { ALERT_ORDER, type Alert } from "./alerts";
+import { plural } from "./period";
 
 export type ChannelAlert = Alert;
 
@@ -38,8 +39,6 @@ const QUALITY: Record<string, string> = { GREEN: "Alta", YELLOW: "Média", RED: 
 
 export const qualityLabel = (quality: string | null): string | null =>
   quality ? (QUALITY[quality.toUpperCase()] ?? quality) : null;
-
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 const day = (iso: string) =>
   new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });

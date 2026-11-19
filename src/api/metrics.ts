@@ -68,6 +68,13 @@ const overviewSchema = z.object({
       }),
       rows: z.array(zapRowSchema).catch([]),
     }),
+    /**
+     * Mensagens que cada operador mandou e em quantas conversas, no período (MOB-11). Com `agent_id`, e para o operador
+     * logado, só a linha dele. Servidor anterior não manda: lista vazia.
+     */
+    operators: z
+      .array(z.object({ user_id: z.string(), name: z.string(), messages: num, conversations: num }))
+      .catch([]),
   }),
 });
 

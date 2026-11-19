@@ -38,6 +38,8 @@ export function change(current: number, previous: number): number | null {
 }
 
 export const formatInt = (value: number) => value.toLocaleString("pt-BR");
+/** "1 conversa", "3 conversas". */
+export const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 export const formatPercent = (value: number) =>
   `${value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
 export function formatMoney(value: number, currency: string | null = "BRL"): string {

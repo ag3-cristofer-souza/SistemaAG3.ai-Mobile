@@ -6,6 +6,9 @@ Versão 3, 06/11/2026. Caminhos de código são relativos aos repositórios `Sis
 **Estado:** app no ar em `mobile.ag3system.com`, com login, tempo real e notificação real pelo Firebase confirmados em Android. Onda 9
 commitada (adendo hh), aguardando deploy e teste real. Onda 10, partes 1 e 2, escritas (adendos hi e hj): aguardam suíte e deploy. Pendentes: D5, D6, áudio como nota de voz na Meta e na Wafly, testes
 em iPhone, e lembrete por WhatsApp ao cliente, que precisa de número Meta de teste.
+Plano 04 do backend (E11, adendo iz, 19/11): MOB-01, 02, 04, 05 e 06 já estavam feitos; MOB-03 (valor da venda do card na
+faixa do funil, no painel do funil e no finalizar) escrito. MOB-11 (mensagens e conversas por operador em Meus números, no detalhe do
+operador e na PerformaZap; adendo ja) escrito.
 
 ## 1. Resumo
 

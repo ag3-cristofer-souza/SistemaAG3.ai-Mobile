@@ -21,7 +21,9 @@ import { Button } from "@/ui/button";
 import { ErrorText } from "@/ui/feedback";
 import { PhotoViewer } from "@/ui/photo-viewer";
 import { Sheet } from "@/ui/sheet";
+import { CardValueField } from "./CardValueField";
 import { historyDetail, historyLabel, stageLabel } from "./funnel";
+import { cardValueInput, formatCardValue, parseCardValue } from "./money";
 import { useLeadCard } from "./useLeadCard";
 
 const errorText = (error: unknown) =>
@@ -29,19 +31,28 @@ const errorText = (error: unknown) =>
 
 const when = (iso: string) => `${formatDayLabel(iso)}, ${formatTime(iso)}`;
 
-/** Faixa abaixo do cabeçalho: mostra a etapa do funil e abre a troca de etapa e a descrição no CRM. */
+/**
+ * Faixa abaixo do cabeçalho: mostra a etapa do funil e o valor da venda, e abre a troca de etapa, o valor (MOB-03) e a
+ * descrição no CRM.
+ */
 export function FunnelBar({ leadId }: { leadId: string }) {
-  const { card, stages, access, loading, move, assume, addNote } = useLeadCard(leadId);
+  const { card, stages, access, loading, move, setValue, assume, addNote } = useLeadCard(leadId);
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [saved, setSaved] = useState(false);
+  const [valueText, setValueText] = useState("");
+  const [valueSaved, setValueSaved] = useState(false);
   const noteId = useId();
 
   if (loading) return null;
+  const value = formatCardValue(card?.total_value);
+  const amount = parseCardValue(valueText);
   const close = () => {
     setOpen(false);
     setSaved(false);
+    setValueSaved(false);
     move.reset();
+    setValue.reset();
     assume.reset();
     addNote.reset();
   };
@@ -50,7 +61,10 @@ export function FunnelBar({ leadId }: { leadId: string }) {
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setValueText(cardValueInput(card?.total_value));
+          setOpen(true);
+        }}
         className="flex min-h-11 shrink-0 items-center gap-2 border-t border-border/60 bg-card px-4 text-left text-sm"
       >
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -66,9 +80,15 @@ export function FunnelBar({ leadId }: { leadId: string }) {
             {card ? stageLabel(stages, card.status) : "Sem card neste lead"}
           </span>
         </span>
+        {value && (
+          <span className="shrink-0 text-xs font-semibold tabular-nums text-foreground">
+            <span className="sr-only">Valor da venda: </span>
+            {value}
+          </span>
+        )}
         <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       </button>
-      <Sheet open={open} title="Funil e descrição" onClose={close}>
+      <Sheet open={open} title="Funil, valor e descrição" onClose={close}>
         <div className="space-y-4 p-4">
           {access === "assume" && (
             <div className="space-y-2">
@@ -117,6 +137,48 @@ export function FunnelBar({ leadId }: { leadId: string }) {
               </ul>
               <ErrorText className="mt-2">{move.isError && errorText(move.error)}</ErrorText>
             </fieldset>
+          )}
+          {card && (
+            <form
+              className="space-y-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (amount === null) return;
+                setValueSaved(false);
+                setValue.mutate(amount, {
+                  onSuccess: () => {
+                    setValueText(cardValueInput(amount));
+                    setValueSaved(true);
+                  },
+                });
+              }}
+            >
+              <CardValueField
+                value={valueText}
+                disabled={access !== "move"}
+                onChange={(next) => {
+                  setValueText(next);
+                  setValueSaved(false);
+                }}
+              />
+              <ErrorText>{setValue.isError && errorText(setValue.error)}</ErrorText>
+              {valueSaved && (
+                <p role="status" className="text-sm text-muted-foreground">
+                  Valor salvo no card.
+                </p>
+              )}
+              <Button
+                type="submit"
+                block
+                variant="outline"
+                loading={setValue.isPending}
+                disabled={
+                  access !== "move" || amount === null || amount === (card.total_value ?? 0)
+                }
+              >
+                Salvar valor
+              </Button>
+            </form>
           )}
           <form
             className="space-y-2"

@@ -21,6 +21,8 @@ import { Button } from "@/ui/button";
 import { ErrorText } from "@/ui/feedback";
 import { Sheet } from "@/ui/sheet";
 import { availableActions } from "./actions";
+import { CardValueField } from "./CardValueField";
+import { cardValueInput, parseCardValue } from "./money";
 import { conversationName } from "./tabs";
 import { useLeadCard } from "./useLeadCard";
 
@@ -198,7 +200,7 @@ function NotesPanel({ conversationId }: { conversationId: string }) {
 
 type Panel = "menu" | "transfer" | "notes" | "finish" | "queue" | "ai" | null;
 
-/** Finalizar é o momento de registrar como terminou: etapa do funil e descrição no CRM, as duas opcionais. */
+/** Finalizar é o momento de registrar como terminou: etapa do funil, valor da venda e descrição no CRM, todos opcionais. */
 function FinishForm({
   conversation,
   onDone,
@@ -210,14 +212,20 @@ function FinishForm({
 }) {
   const stageId = useId();
   const noteId = useId();
-  const { card, stages, access, move, addNote } = useLeadCard(conversation.lead_id);
+  const { card, stages, access, move, setValue, addNote } = useLeadCard(conversation.lead_id);
   const [chosen, setChosen] = useState<string | null>(null);
+  const [typedValue, setTypedValue] = useState<string | null>(null);
   const [text, setText] = useState("");
   const stage = chosen ?? card?.status ?? "";
+  const valueText = typedValue ?? cardValueInput(card?.total_value);
+  const amount = parseCardValue(valueText);
   const finish = useMutation({
     mutationFn: async () => {
-      // O atendimento fecha por último: se a etapa ou a descrição falharem, nada foi encerrado pela metade.
+      // O atendimento fecha por último: se a etapa, o valor ou a descrição falharem, nada foi encerrado pela metade.
       if (access === "move" && stage && stage !== card?.status) await move.mutateAsync(stage);
+      if (access === "move" && amount !== null && amount !== (card?.total_value ?? 0)) {
+        await setValue.mutateAsync(amount);
+      }
       if (conversation.lead_id && text.trim()) await addNote.mutateAsync(text.trim());
       await conversationsApi.finish(conversation.id);
     },
@@ -253,6 +261,7 @@ function FinishForm({
           </select>
         </div>
       )}
+      {card && access === "move" && <CardValueField value={valueText} onChange={setTypedValue} />}
       {conversation.lead_id && (
         <div className="space-y-1.5">
           <label htmlFor={noteId} className="block text-sm font-medium">
@@ -272,6 +281,7 @@ function FinishForm({
         type="submit"
         block
         loading={finish.isPending}
+        disabled={access === "move" && amount === null}
         className="bg-success text-success-foreground active:bg-success/90"
       >
         {!finish.isPending && <CheckCircle2 aria-hidden="true" />}

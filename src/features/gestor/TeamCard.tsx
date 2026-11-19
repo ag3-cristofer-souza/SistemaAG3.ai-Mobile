@@ -254,6 +254,7 @@ function OperatorDetail({
           <PeriodResults
             overview={overview.data}
             label={`Resultados de ${operator.name} no período`}
+            userId={operator.user_id}
           />
         )}
       </section>

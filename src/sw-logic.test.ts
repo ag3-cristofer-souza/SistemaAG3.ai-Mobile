@@ -63,6 +63,10 @@ describe("aparência por tipo", () => {
       icon: "/icons/aviso-alerta.png",
       actions: [{ action: "open", title: "Ver painel" }],
     });
+    expect(options({ type: "partner_alert" })).toMatchObject({
+      icon: "/icons/aviso-alerta.png",
+      actions: [{ action: "open", title: "Ver cliente" }],
+    });
     expect(options({ type: "agenda" })).toMatchObject({
       icon: "/icons/aviso-agenda.png",
       actions: [{ action: "open", title: "Ver compromisso" }],

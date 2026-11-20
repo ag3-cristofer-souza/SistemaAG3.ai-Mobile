@@ -1,6 +1,7 @@
 import { pushApi } from "@/api/push";
 import { notificationOptions, parsePush } from "@/sw-logic";
 import { currentPlatform, isStandalone } from "./pwa";
+import { getBrand } from "@/lib/brand";
 
 export type PushStatus = "unsupported" | "needs-install" | "default" | "granted" | "denied";
 
@@ -37,7 +38,7 @@ export async function showTestNotification(): Promise<void> {
     data: {
       type: "test",
       title: "Notificações ativas",
-      body: "É assim que os avisos do AG3 vão aparecer neste aparelho.",
+      body: `É assim que os avisos do ${getBrand().product_name} vão aparecer neste aparelho.`,
       tag: "ag3-teste",
       url: "/diagnostico",
     },

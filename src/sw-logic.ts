@@ -5,6 +5,7 @@ export type PushKind =
   | "conversation_transferred"
   | "agenda"
   | "manager_alert"
+  | "partner_alert"
   | "test"
   | "generic";
 
@@ -39,6 +40,7 @@ const KINDS: readonly PushKind[] = [
   "conversation_transferred",
   "agenda",
   "manager_alert",
+  "partner_alert",
   "test",
 ];
 
@@ -92,6 +94,12 @@ const LOOK: Record<PushKind, { icon: string; vibrate: number[]; action: string }
     icon: "/icons/aviso-alerta.png",
     vibrate: [220, 100, 220],
     action: "Ver painel",
+  },
+  /** Alerta grave de um cliente da carteira do parceiro: abre o Agora do cliente. */
+  partner_alert: {
+    icon: "/icons/aviso-alerta.png",
+    vibrate: [220, 100, 220],
+    action: "Ver cliente",
   },
   test: { icon: "/icons/aviso-ativo.png", vibrate: [120], action: "Abrir o app" },
   generic: { icon: "/icons/aviso-ativo.png", vibrate: [120], action: "Abrir o app" },

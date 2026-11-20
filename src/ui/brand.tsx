@@ -1,5 +1,6 @@
 import { useEffect, type CSSProperties, type ReactNode } from "react";
 import logoBranco from "@/assets/logo-branco.png";
+import { useBrand } from "@/lib/brand";
 import { TERRA_PATH, TERRA_VIEWBOX as v } from "@/features/abertura/terra";
 
 /** O mesmo globo girando da abertura, com halo e anel. */
@@ -23,9 +24,27 @@ export function BrandMark() {
           </svg>
         </div>
       </div>
-      <img src={logoBranco} alt="AG3.AI" width={148} height={34} />
+      <BrandLogo />
     </div>
   );
+}
+
+/** Logo para fundo escuro: o do parceiro no endereço dele (white label), senão o da AG3; sem logo, o nome. */
+export function BrandLogo({ className }: { className?: string }) {
+  const brand = useBrand();
+  if (brand.is_default)
+    return <img className={className} src={logoBranco} alt="AG3.AI" width={148} height={34} />;
+  const src = brand.logo_dark ?? brand.logo_light;
+  if (src)
+    return (
+      <img
+        className={className}
+        src={src}
+        alt={brand.product_name}
+        style={{ height: 34, width: "auto", maxWidth: 220 }}
+      />
+    );
+  return <span className="text-xl font-semibold text-white">{brand.product_name}</span>;
 }
 
 const BRAND_COLOR = "#12224e";

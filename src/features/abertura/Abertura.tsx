@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import logoBranco from "@/assets/logo-branco.png";
+import { BrandLogo } from "@/ui/brand";
 import { markPlayed, readPlayed, shouldPlayAbertura } from "./abertura";
 import { TERRA_PATH, TERRA_VIEWBOX as v } from "./terra";
 
@@ -39,7 +39,7 @@ export function Abertura() {
             </svg>
           </div>
         </div>
-        <img className="abertura-logo" src={logoBranco} alt="" width={150} height={34} />
+        <BrandLogo className="abertura-logo" />
       </div>
     </div>
   );

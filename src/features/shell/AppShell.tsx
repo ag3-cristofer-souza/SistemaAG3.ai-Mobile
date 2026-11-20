@@ -10,6 +10,7 @@ import globo from "@/assets/globo.svg";
 import { realtime, useRealtimeState } from "@/realtime";
 import { safePath } from "@/sw-logic";
 import { homeFor, navItemsFor } from "./navigation";
+import { syncCompanyBrand, useBrand } from "@/lib/brand";
 
 const STATUS = {
   online: { label: "Ao vivo", dot: "bg-success", pill: "bg-success/10 text-success" },
@@ -70,6 +71,10 @@ export function AppShell() {
   const state = useRealtimeState();
   useRealtimeBridge(workspace.company_id);
   useNotificationNavigation();
+  const brand = useBrand();
+  useEffect(() => {
+    void syncCompanyBrand(workspace.brand_slug); // white label: a marca do parceiro da empresa aberta
+  }, [workspace.brand_slug]);
   useEffect(() => {
     void keepDeviceRegistered();
   }, []);
@@ -93,10 +98,10 @@ export function AppShell() {
         <img src={globo} alt="" width={32} height={32} className="size-8 shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-primary">
-            AG3
+            {brand.product_name}
           </p>
           <h1 className="truncate text-base font-semibold leading-tight">
-            {workspace.company_name ?? "AG3"}
+            {workspace.company_name ?? brand.product_name}
           </h1>
         </div>
         <span
@@ -130,7 +135,9 @@ export function AppShell() {
               className={({ isActive }) =>
                 cn(
                   "relative flex min-h-14 flex-1 flex-col items-center justify-center gap-1 rounded-[1.375rem] text-[0.6875rem] tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  isActive ? "bg-primary/[0.06] font-semibold text-primary" : "text-muted-foreground active:bg-primary/5"
+                  isActive
+                    ? "bg-primary/[0.06] font-semibold text-primary"
+                    : "text-muted-foreground active:bg-primary/5"
                 )
               }
             >
@@ -143,7 +150,11 @@ export function AppShell() {
                       isActive && "nav-dock-orb scale-105"
                     )}
                   >
-                    <Icon className="size-[1.125rem]" strokeWidth={isActive ? 2.4 : 2} aria-hidden="true" />
+                    <Icon
+                      className="size-[1.125rem]"
+                      strokeWidth={isActive ? 2.4 : 2}
+                      aria-hidden="true"
+                    />
                   </span>
                   {label}
                 </>

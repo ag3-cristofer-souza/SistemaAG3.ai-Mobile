@@ -490,3 +490,10 @@ nele. Se falharem, as saídas estão na seção 12.
 | D5 | "Atendimento com a IA", no pedido do cliente | **Perguntar ao cliente.** Assumido na Onda 7: ver as conversas com a IA, assumir e devolver. Sugestão de resposta por IA é escopo bem maior |
 | D6 | "Mensagem mais enviada" e "mensagem fixa" | **Confirmar com o cliente.** Assumido na Onda 8: `mensagens_iniciais` de `/reports/entries/origem`, a primeira mensagem de cada entrada |
 | D7 | Tema | **Decidido:** sempre claro, sem seguir o modo escuro do aparelho; azul só na abertura e no login |
+
+## 14. White label (onda 7 do plano de parceiros, 20/11)
+
+O app aparece com a marca do parceiro no endereço `<slug>-m.ag3system.com`: nome, ícone, cor, logo na abertura e nas
+telas de entrada, e o manifesto do app instalável vindo do backend (`GET /branding/manifest?host=…`, adendo jn no plano
+de migração do backend). Em `mobile.ag3system.com` vale a marca da empresa aberta na tela (`brand_slug` de
+`/users/workspaces`), mas o app instalado continua o da AG3. Código em `src/api/branding.ts` e `src/lib/brand.ts`.

@@ -7,6 +7,8 @@ const schema = z.object({
       company_id: z.string(),
       company_name: z.string().nullable(),
       is_primary: z.boolean().optional(),
+      /** White label: marca do parceiro da empresa (só quando ativa). */
+      brand_slug: z.string().optional(),
     })
   ),
 });

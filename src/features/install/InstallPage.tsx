@@ -9,6 +9,7 @@ import {
 } from "@/lib/pwa";
 import { BrandScreen } from "@/ui/brand";
 import { Button } from "@/ui/button";
+import { useBrand } from "@/lib/brand";
 
 function Steps({ children }: { children: ReactNode }) {
   return <ol className="space-y-3 rounded-lg border bg-card p-4 text-sm">{children}</ol>;
@@ -40,10 +41,11 @@ export function InstallPage({ platform, onSkip }: InstallPageProps) {
     onSkip();
   };
 
+  const brand = useBrand();
   return (
     <BrandScreen>
       <div className="space-y-1 text-center">
-        <h1 className="text-xl font-semibold">Instale o AG3 no celular</h1>
+        <h1 className="text-xl font-semibold">Instale o {brand.product_name} no celular</h1>
         <p className="text-sm text-muted-foreground">
           {isIos
             ? "No iPhone, as notificações só funcionam com o app instalado."
@@ -54,7 +56,7 @@ export function InstallPage({ platform, onSkip }: InstallPageProps) {
       {installed ? (
         <p className="flex items-center gap-2 rounded-lg border bg-card p-4 text-sm">
           <Smartphone className="size-5 shrink-0 text-primary" aria-hidden="true" />
-          Pronto. Abra o AG3 pelo ícone na tela de início.
+          Pronto. Abra o {brand.product_name} pelo ícone na tela de início.
         </p>
       ) : isIos ? (
         <Steps>
@@ -66,7 +68,7 @@ export function InstallPage({ platform, onSkip }: InstallPageProps) {
             Escolha Adicionar à Tela de Início
             <SquarePlus className="size-4 text-primary" aria-hidden="true" />
           </Step>
-          <Step n={3}>Abra o AG3 pelo ícone e entre com sua conta</Step>
+          <Step n={3}>Abra o {brand.product_name} pelo ícone e entre com sua conta</Step>
         </Steps>
       ) : canPrompt ? (
         <Button block onClick={() => void promptInstall()}>
@@ -80,7 +82,7 @@ export function InstallPage({ platform, onSkip }: InstallPageProps) {
             <EllipsisVertical className="size-4 text-primary" aria-label="ícone de menu" />
           </Step>
           <Step n={2}>Toque em Instalar app ou Adicionar à tela inicial</Step>
-          <Step n={3}>Abra o AG3 pelo ícone e entre com sua conta</Step>
+          <Step n={3}>Abra o {brand.product_name} pelo ícone e entre com sua conta</Step>
         </Steps>
       )}
 
